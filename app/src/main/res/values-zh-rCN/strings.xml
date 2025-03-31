@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ADBLink</string>
+    <string name="github_message">如果你喜欢本应用的话\n可以在Github仓库上Star哦🙇</string>
+
+    <string name="back">返回</string>
+    <string name="home">主页</string>
+    <string name="manage">管理</string>
+    <string name="device_management">设备管理</string>
+    <string name="settings">设置</string>
+    <string name="default_cast_parameters">默认投屏参数</string>
+    <string name="cast_settings">投屏设置</string>
+    <string name="other">其他</string>
+    <string name="about">关于</string>
+    <string name="log">日志</string>
+    <string name="ip_address">IP地址</string>
+    <string name="adb_key">ADB密钥</string>
+
+    <string name="project_website">项目主页</string>
+    <string name="instructions_for_use">使用说明</string>
+    <string name="privacy_policy">隐私政策</string>
+    <string name="license">开源证书</string>
+    <string name="version">版本: </string>
+
+    <string name="public_key">公钥</string>
+    <string name="private_key">私钥</string>
+    <string name="save">保存</string>
+    <string name="saved">已保存</string>
+    <string name="save_failed">保存失败</string>
+
+    <string name="cast_max_size">最大大小</string>
+    <string name="cast_max_size_description">设置画面长或宽的最大大小</string>
+    <string name="cast_max_size_original">原始大小</string>
+    <string name="cast_max_fps">最大帧率</string>
+    <string name="cast_max_fps_description">最大帧率限制</string>
+    <string name="cast_max_video_bitrate">最大视频码率</string>
+    <string name="cast_max_video_bitrate_description">最大视频码率限制</string>
+    <string name="cast_enable_audio">启用音频</string>
+    <string name="cast_enable_audio_description">开启后将尝试传输音频，被控端需要安卓12或以上</string>
+    <string name="cast_clipboard_sync">剪贴板同步</string>
+    <string name="cast_clipboard_sync_description">同步设备之间的剪贴板</string>
+    <string name="cast_night_mode_sync">黑暗模式同步</string>
+    <string name="cast_night_mode_sync_description">同步设备之间的黑暗模式</string>
+    <string name="cast_prefer_h265">优先H265</string>
+    <string name="cast_prefer_h265_description">优先使用H265进行视频编码</string>
+    <string name="cast_prefer_opus">优先Opus</string>
+    <string name="cast_prefer_opus_description">优先使用Opus进行音频编码</string>
+    <string name="cast_free_scaling">应用流转宽高比例自由缩放</string>
+    <string name="cast_free_scaling_description">开启后应用流转宽高比例可自由设置</string>
+
+    <string name="cast_wake_device_on_connect">连接后唤醒设备</string>
+    <string name="cast_wake_device_on_connect_description">投屏连接成功后自动唤醒设备</string>
+    <string name="cast_turn_off_screen_on_connect">连接后关闭设备屏幕</string>
+    <string name="cast_turn_off_screen_on_connect_description">投屏连接成功两秒后关闭设备屏幕 (需开启\u0022连接后唤醒设备\u0022)</string>
+    <string name="cast_lock_device_on_disconnect">断开后锁定设备</string>
+    <string name="cast_lock_device_on_disconnect_description">断开投屏连接后自动锁定设备</string>
+    <string name="cast_turn_on_screen_on_disconnect">断开后开启设备屏幕</string>
+    <string name="cast_turn_on_screen_on_disconnect_description">断开投屏连接后开启设备屏幕 (需关闭\u0022断开后锁定设备\u0022)</string>
+    <string name="cast_keep_screen_awake">保持设备唤醒</string>
+    <string name="cast_keep_screen_awake_description">投屏连接过程中保持设备唤醒</string>
+    <string name="cast_default_show_nav_bar">默认显示导航栏</string>
+    <string name="cast_default_show_nav_bar_description">投屏时是否默认显示导航栏</string>
+    <string name="cast_full_fill">全屏模式拉伸填充画面</string>
+    <string name="cast_full_fill_description">投屏时全屏模式下画面拉伸并填充所有可用区域 (注: 比例相差过大时不拉伸)</string>
+
+    <string name="use_system_color">使用系统主题颜色</string>
+    <string name="dark_theme">深色主题</string>
+    <string name="follow_system">跟随系统</string>
+    <string name="always_off">总是关闭</string>
+    <string name="always_on">总是开启</string>
+    <string name="audio_output_channel">音频输出声道</string>
+    <string name="audio_output_channel_description">没有特殊需要请保持0声道</string>
+    <string name="enable_usb">启用USB设备检测</string>
+    <string name="enable_usb_description">若不希望使用有线连接，可关闭</string>
+    <string name="full_screen">沉浸式全屏模式</string>
+    <string name="full_screen_description">若不希望全屏模式时本机导航栏消失，可关闭</string>
+    <string name="enable_log">开启日志输出</string>
+    <string name="view_log">查看日志</string>
+    <string name="view_local_ip">查看本机IP</string>
+    <string name="customize_adb_key">自定义ADB密钥</string>
+    <string name="regenerate">重新生成</string>
+    <string name="regenerated">已重新生成</string>
+
+    <string name="ipv4">IPv4 (点击复制)</string>
+    <string name="ipv6">IPv6 (点击复制)</string>
+    <string name="no_ip">无IP地址</string>
+    <string name="copied">已复制</string>
+
+    <string name="app_log">应用日志</string>
+    <string name="export_logs">导出日志</string>
+</resources>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ADBLink</string>
+    <string name="github_message">If you like this APP\nYou can left a star on the GitHub repository🙇</string>
+
+    <string name="back">Back</string>
+    <string name="home">Home</string>
+    <string name="manage">Manage</string>
+    <string name="device_management">Device Management</string>
+    <string name="settings">Settings</string>
+    <string name="default_cast_parameters">Default Cast Parameters</string>
+    <string name="cast_settings">Cast Settings</string>
+    <string name="other">Other</string>
+    <string name="about">About</string>
+    <string name="log">Log</string>
+    <string name="ip_address">IP Address</string>
+    <string name="adb_key">ADB Key</string>
+
+    <string name="project_website">Project website</string>
+    <string name="instructions_for_use">Instructions for use</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="license">License</string>
+    <string name="version">Version: </string>
+
+    <string name="public_key">Public key</string>
+    <string name="private_key">Private key</string>
+    <string name="save">Save</string>
+    <string name="saved">Saved</string>
+    <string name="save_failed">Save failed</string>
+
+    <string name="cast_max_size">Max size</string>
+    <string name="cast_max_size_description">"Set the maximum size of the screen width or height</string>
+    <string name="cast_max_size_original">Original size</string>
+    <string name="cast_max_fps">Max FPS</string>
+    <string name="cast_max_fps_description">Max frame rate limit</string>
+    <string name="cast_max_video_bitrate">Max Video Bitrate</string>
+    <string name="cast_max_video_bitrate_description">Max video bitrate limit</string>
+    <string name="cast_enable_audio">Enable audio</string>
+    <string name="cast_enable_audio_description">Works with Android 12 and above</string>
+    <string name="cast_clipboard_sync">Clipboard sync</string>
+    <string name="cast_clipboard_sync_description">Synchronize clipboard between devices</string>
+    <string name="cast_night_mode_sync">Dark mode sync</string>
+    <string name="cast_night_mode_sync_description">Synchronize dark mode between devices</string>
+    <string name="cast_prefer_h265">Prefer H265</string>
+    <string name="cast_prefer_h265_description">Prefer to use H265 for video encoding</string>
+    <string name="cast_prefer_opus">Prefer Opus</string>
+    <string name="cast_prefer_opus_description">Prefer to use Opus for audio encoding</string>
+    <string name="cast_free_scaling">Application transfer aspect ratio free scaling</string>
+    <string name="cast_free_scaling_description">Application transfer aspect ratio can be freely set</string>
+
+    <string name="cast_wake_device_on_connect">Wake device after connection</string>
+    <string name="cast_wake_device_on_connect_description">Wake device automatically after a successful cast connection</string>
+    <string name="cast_turn_off_screen_on_connect">Turn off device screen after connection</string>
+    <string name="cast_turn_off_screen_on_connect_description">Turn off device screen two seconds after a successful cast connection (need to turn on \u0022Wake device after connection\u0022)</string>
+    <string name="cast_lock_device_on_disconnect">Lock device after disconnection</string>
+    <string name="cast_lock_device_on_disconnect_description">Automatically lock device after a cast connection is disconnected</string>
+    <string name="cast_turn_on_screen_on_disconnect">Turn on device screen after disconnection</string>
+    <string name="cast_turn_on_screen_on_disconnect_description">Turn on device screen after a cast connection is disconnected (need to turn off \u0022Lock device after disconnection\u0022)</string>
+    <string name="cast_keep_screen_awake">Keep device awake</string>
+    <string name="cast_keep_screen_awake_description">Keep device awake during cast connection</string>
+    <string name="cast_default_show_nav_bar">Default show navigation bar</string>
+    <string name="cast_default_show_nav_bar_description">Whether to show the navigation bar by default when casting</string>
+    <string name="cast_full_fill">Stretch and fill in Fullscreen mode</string>
+    <string name="cast_full_fill_description">Stretch the frame to fill all available areas in full-screen mode when casting (Note: No stretching if the aspect ratio difference is too large)</string>
+
+    <string name="use_system_color">Use system theme color</string>
+    <string name="dark_theme">Dark theme</string>
+    <string name="follow_system">Follow system</string>
+    <string name="always_off">Always off</string>
+    <string name="always_on">Always on</string>
+    <string name="audio_output_channel">Audio output channel</string>
+    <string name="audio_output_channel_description">Please keep 0 if there is no special need</string>
+    <string name="enable_usb">Enable USB detection</string>
+    <string name="enable_usb_description">If you do not want to connect via USB, you can turn this off</string>
+    <string name="full_screen">Immersive full screen mode</string>
+    <string name="full_screen_description">If you do not want the native navigation bar to disappear when in full screen mode, you can turn this off</string>
+    <string name="enable_log">"Enable log output</string>
+    <string name="view_log">View log</string>
+    <string name="view_local_ip">View local IP</string>
+    <string name="customize_adb_key">Customize ADB key</string>
+    <string name="regenerate">Regenerate</string>
+    <string name="regenerated">Regenerated</string>
+
+    <string name="ipv4">IPv4 (Click to copy)</string>
+    <string name="ipv6">IPv6 (Click to copy)</string>
+    <string name="no_ip">No IP address</string>
+    <string name="copied">Copied</string>
+
+    <string name="app_log">App log</string>
+    <string name="export_logs">Export logs</string>
+</resources>
