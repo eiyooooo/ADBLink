@@ -1,2 +1,3 @@
 rootProject.name = "ADBLink"
 include ':app'
+include ':libadb'
