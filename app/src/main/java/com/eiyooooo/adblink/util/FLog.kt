@@ -2,7 +2,12 @@ package com.eiyooooo.adblink.util
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.util.Log
+import androidx.core.content.FileProvider
+import com.eiyooooo.adblink.BuildConfig
+import com.eiyooooo.adblink.MyApplication.Companion.appStartTime
+import com.eiyooooo.adblink.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,8 +22,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
-import com.eiyooooo.adblink.BuildConfig
-import com.eiyooooo.adblink.MyApplication.Companion.appStartTime
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -29,25 +32,27 @@ object FLog {
 
     const val PREFIX = "[ADBLink ${BuildConfig.VERSION_NAME}]-> "
 
-    var logFile: File? = null
+    private var logFile: File? = null
     private var fLogTree = FLogTree()
 
     private val logChannel = Channel<String>(Channel.UNLIMITED)
-    val logScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val logScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private var writerJob: Job? = null
 
     fun init(context: Context) {
-        val logFiles = context.cacheDir.listFiles { _, name -> name.endsWith(".log") }
+        val logsDir = File(context.cacheDir, "logs")
+        if (!logsDir.exists()) logsDir.mkdirs()
+        val logFiles = logsDir.listFiles { _, name -> name.endsWith(".log") }
         logFiles?.forEach { file ->
             if (file.exists()) {
                 file.delete()
             }
         }
-        logFile = File(context.cacheDir, "ADBLink-${BuildConfig.VERSION_NAME}-${appStartTime.time}.log")
+        logFile = File(logsDir, "ADBLink-${BuildConfig.VERSION_NAME}-${appStartTime.time}.log")
     }
 
-    fun makeFLog(logDateFormat: SimpleDateFormat, priority: Int, tag: String?, message: String) {
+    private fun append(logDateFormat: SimpleDateFormat, priority: Int, tag: String?, message: String) {
         if (writerJob?.isActive != true) return
 
         val timeStamp = logDateFormat.format(Date())
@@ -67,17 +72,17 @@ object FLog {
         }
     }
 
-    private val writeFLogImmediately: MutableStateFlow<Boolean> by lazy { MutableStateFlow(false) }
+    private val writeImmediately: MutableStateFlow<Boolean> by lazy { MutableStateFlow(false) }
 
     @SuppressLint("LogNotTimber")
-    fun startFLog() {
+    fun start() {
         if (!Timber.forest().contains(fLogTree)) {
             Timber.plant(fLogTree)
         }
 
         if (writerJob?.isActive == true) return
         writerJob = logScope.launch {
-            writeFLogToFile(listOf(""))
+            writeToFile(listOf(""))
             Timber.i("FLog started")
             while (isActive) {
                 try {
@@ -86,7 +91,7 @@ object FLog {
 
                     withTimeoutOrNull(1000L) {
                         for (logMessage in logChannel) {
-                            if (writeFLogImmediately.value) break
+                            if (writeImmediately.value) break
                             logBuffer.add(logMessage)
                             messageCount++
                             if (messageCount >= 10) break
@@ -94,10 +99,10 @@ object FLog {
                     }
 
                     if (logBuffer.isNotEmpty()) {
-                        writeFLogToFile(logBuffer)
+                        writeToFile(logBuffer)
                     }
 
-                    writeFLogImmediately.update { false }
+                    writeImmediately.update { false }
                 } catch (t: Throwable) {
                     Log.e("FLog", "Error in log writer coroutine", t)
                     delay(1000)
@@ -106,7 +111,7 @@ object FLog {
         }
     }
 
-    fun stopFLog() {
+    fun stop() {
         if (Timber.forest().contains(fLogTree)) {
             Timber.uproot(fLogTree)
         }
@@ -115,23 +120,58 @@ object FLog {
         writerJob = null
     }
 
-    suspend fun writeLastFLog() {
-        writeFLogImmediately.update { true }
+    private suspend fun writeLast() {
+        writeImmediately.update { true }
         logChannel.send("")
-        writeFLogImmediately.first { !it }
+        writeImmediately.first { !it }
     }
 
     @SuppressLint("LogNotTimber")
-    private suspend fun writeFLogToFile(logBuffer: List<String>) {
+    private suspend fun writeToFile(logBuffer: List<String>) {
         withContext(Dispatchers.IO) {
             try {
                 FileWriter(logFile, true).use { writer ->
                     for (logMessage in logBuffer) {
                         writer.write(logMessage)
                     }
+                    writer.flush()
+                    writer.close()
                 }
             } catch (t: Throwable) {
                 Log.e("FLog", "Error writing log to file", t)
+            }
+        }
+    }
+
+    suspend fun read(): String? {
+        return withContext(Dispatchers.IO) {
+            writeLast()
+            logFile?.let {
+                if (it.exists()) {
+                    it.readText()
+                } else null
+            }
+        }
+    }
+
+    fun export(context: Context) {
+        logScope.launch {
+            try {
+                val fileUri = logFile?.let {
+                    writeLast()
+                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", it)
+                } ?: throw IllegalStateException("Log file not found")
+
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, fileUri)
+                    type = "text/plain"
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.export_logs)))
+            } catch (e: Exception) {
+                Timber.e(e, "Error occurred while exporting logs")
             }
         }
     }
@@ -142,7 +182,7 @@ object FLog {
 
         override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
             super.log(priority, tag, PREFIX + message, t)
-            makeFLog(logDateFormat, priority, tag, message)
+            append(logDateFormat, priority, tag, message)
         }
     }
 }

@@ -116,9 +116,9 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
             checked = enableLog,
             onCheckedChange = {
                 if (it) {
-                    FLog.startFLog()
+                    FLog.start()
                 } else {
-                    FLog.stopFLog()
+                    FLog.stop()
                 }
                 Preferences.enableLog = it
             }

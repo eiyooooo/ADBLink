@@ -23,7 +23,7 @@ class MyApplication : Application() {
         Preferences.init(this)
 
         FLog.init(this)
-        if (Preferences.enableLog) FLog.startFLog()
+        if (Preferences.enableLog) FLog.start()
         Timber.i("App started at: $appStartTime")
     }
 }

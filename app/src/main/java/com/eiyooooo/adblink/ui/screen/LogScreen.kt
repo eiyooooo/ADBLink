@@ -1,6 +1,5 @@
 package com.eiyooooo.adblink.ui.screen
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,26 +26,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.util.FLog
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogContent() {//TODO
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     var selectedDevice by remember { mutableStateOf<String?>(null) }
     var logText by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
@@ -63,62 +58,11 @@ fun LogContent() {//TODO
         list
     }
 
-    // 读取应用日志函数
-    suspend fun readAppLog(): String {
-        return withContext(Dispatchers.IO) {
-            FLog.logFile?.let {
-                if (it.exists()) {
-                    it.readText()
-                } else {
-                    "应用日志文件不存在"
-                }
-            } ?: "应用日志未初始化"
-        }
-    }
 
     // 初始化选中第一个设备（应用日志）
     LaunchedEffect(Unit) {
         selectedDevice = devices.firstOrNull()
-        logText = readAppLog()
-    }
-
-    // 导出日志函数
-    fun exportLogs() {
-        FLog.logScope.launch {
-            try {
-                FLog.writeLastFLog()
-                val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                val fileName = "logs_${if (currentUuid != null) "${currentUuid}_" else ""}$timeStamp.txt"
-
-                // 创建日志文件
-                val logsDir = File(context.cacheDir, "logs")
-                if (!logsDir.exists()) logsDir.mkdirs()
-                val logFile = File(logsDir, fileName)
-
-                // 写入日志内容
-                logFile.writeText(logText)
-
-                // 使用FileProvider共享文件
-                val fileUri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    logFile
-                )
-
-                // 创建分享Intent
-                val shareIntent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_STREAM, fileUri)
-                    type = "text/plain"
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-
-                // 启动分享
-                context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.export_logs)))
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        logText = FLog.read() ?: ""
     }
 
     Column {
@@ -155,8 +99,8 @@ fun LogContent() {//TODO
                             // 更新日志文本
 //                            if (device == context.getString(R.string.app_log)) {
                             // 使用协程读取应用日志
-                            FLog.logScope.launch {
-                                logText = readAppLog()
+                            coroutineScope.launch {
+                                logText = FLog.read() ?: ""
                             }
                             currentUuid = null
 //                            } else if (device == context.getString(R.string.other_devices)) {
@@ -189,7 +133,7 @@ fun LogContent() {//TODO
         )
 
         Button(
-            onClick = { exportLogs() },
+            onClick = { FLog.export(context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
