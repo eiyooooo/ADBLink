@@ -82,21 +82,9 @@ final class AdbProtocol {
     }
 
     /**
-     * Original payload size
+     * Maximum supported payload size
      */
-    public static final int MAX_PAYLOAD_V1 = 4 * 1024;
-    /**
-     * Supported payload size since Android 7 (N)
-     */
-    public static final int MAX_PAYLOAD_V2 = 256 * 1024;
-    /**
-     * Supported payload size since Android 9 (P)
-     */
-    public static final int MAX_PAYLOAD_V3 = 1024 * 1024;
-    /**
-     * Maximum supported payload size is set to the original to support all APIs
-     */
-    public static final int MAX_PAYLOAD = MAX_PAYLOAD_V1;
+    public static final int MAX_PAYLOAD = 1024 * 1024;
 
     /**
      * The original version of the ADB protocol
@@ -106,7 +94,7 @@ final class AdbProtocol {
      * The new version of the ADB protocol introduced in Android 9 (P) with the introduction of TLS
      */
     public static final int A_VERSION_SKIP_CHECKSUM = 0x01000001;
-    public static final int A_VERSION = A_VERSION_MIN;
+    public static final int A_VERSION = A_VERSION_SKIP_CHECKSUM;
 
     /**
      * The current version of the Stream-based TLS
@@ -132,33 +120,6 @@ final class AdbProtocol {
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({ADB_AUTH_TOKEN, ADB_AUTH_SIGNATURE, ADB_AUTH_RSAPUBLICKEY})
     private @interface AuthType {
-    }
-
-    public static int getMaxData(int api) {
-        if (api >= Build.VERSION_CODES.P) {
-            return MAX_PAYLOAD_V3;
-        }
-        if (api >= Build.VERSION_CODES.N) {
-            return MAX_PAYLOAD_V2;
-        }
-        return MAX_PAYLOAD_V1;
-    }
-
-    public static int getProtocolVersion(int api) {
-        if (api >= Build.VERSION_CODES.P) {
-            return A_VERSION_SKIP_CHECKSUM;
-        }
-        return A_VERSION_MIN;
-    }
-
-    /**
-     * This function performs a checksum on the ADB payload data.
-     *
-     * @param data The data
-     * @return The checksum of the data
-     */
-    private static int getPayloadChecksum(@NonNull byte[] data) {
-        return getPayloadChecksum(data, 0, data.length);
     }
 
     /**
@@ -187,8 +148,8 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateMessage(@Command int command, int arg0, int arg1, @Nullable byte[] data) {
-        return generateMessage(command, arg0, arg1, data, 0, data == null ? 0 : data.length);
+    public static byte[] generateMessage(@Command int command, int arg0, int arg1, @Nullable byte[] data, int protocolVersion) {
+        return generateMessage(command, arg0, arg1, data, 0, data == null ? 0 : data.length, protocolVersion);
     }
 
     /**
@@ -203,7 +164,7 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateMessage(@Command int command, int arg0, int arg1, @Nullable byte[] data, int offset, int length) {
+    public static byte[] generateMessage(@Command int command, int arg0, int arg1, @Nullable byte[] data, int offset, int length, int protocolVersion) {
         // Protocol as defined at https://github.com/aosp-mirror/platform_system_core/blob/6072de17cd812daf238092695f26a552d3122f8c/adb/protocol.txt
         // struct message {
         //     unsigned command;       // command identifier constant
@@ -228,7 +189,11 @@ final class AdbProtocol {
 
         if (data != null) {
             message.putInt(length);
-            message.putInt(getPayloadChecksum(data, offset, length));
+            if (protocolVersion >= A_VERSION_SKIP_CHECKSUM) {
+                message.putInt(0);
+            } else {
+                message.putInt(getPayloadChecksum(data, offset, length));
+            }
         } else {
             message.putInt(0);
             message.putInt(0);
@@ -248,12 +213,11 @@ final class AdbProtocol {
      * <p>
      * CONNECT(version, maxdata, "system-identity-string")
      *
-     * @param api API version
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateConnect(int api) {
-        return generateMessage(A_CNXN, getProtocolVersion(api), getMaxData(api), SYSTEM_IDENTITY_STRING_HOST);
+    public static byte[] generateConnect(int protocolVersion) {
+        return generateMessage(A_CNXN, A_VERSION, MAX_PAYLOAD, SYSTEM_IDENTITY_STRING_HOST, protocolVersion);
     }
 
     /**
@@ -266,8 +230,8 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateAuth(@AuthType int type, byte[] data) {
-        return generateMessage(A_AUTH, type, 0, data);
+    public static byte[] generateAuth(@AuthType int type, byte[] data, int protocolVersion) {
+        return generateMessage(A_AUTH, type, 0, data, protocolVersion);
     }
 
     /**
@@ -278,8 +242,8 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateStls() {
-        return generateMessage(A_STLS, A_STLS_VERSION, 0, null);
+    public static byte[] generateStls(int protocolVersion) {
+        return generateMessage(A_STLS, A_STLS_VERSION, 0, null, protocolVersion);
     }
 
     /**
@@ -292,11 +256,11 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateOpen(int localId, @NonNull String destination) {
+    public static byte[] generateOpen(int localId, @NonNull String destination, int protocolVersion) {
         ByteBuffer bbuf = ByteBuffer.allocate(destination.length() + 1);
         bbuf.put(destination.getBytes(StandardCharsets.UTF_8));
         bbuf.put((byte) 0);
-        return generateMessage(A_OPEN, localId, 0, bbuf.array());
+        return generateMessage(A_OPEN, localId, 0, bbuf.array(), protocolVersion);
     }
 
     /**
@@ -312,8 +276,8 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateWrite(int localId, int remoteId, byte[] data, int offset, int length) {
-        return generateMessage(A_WRTE, localId, remoteId, data, offset, length);
+    public static byte[] generateWrite(int localId, int remoteId, byte[] data, int offset, int length, int protocolVersion) {
+        return generateMessage(A_WRTE, localId, remoteId, data, offset, length, protocolVersion);
     }
 
     /**
@@ -326,8 +290,8 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateClose(int localId, int remoteId) {
-        return generateMessage(A_CLSE, localId, remoteId, null);
+    public static byte[] generateClose(int localId, int remoteId, int protocolVersion) {
+        return generateMessage(A_CLSE, localId, remoteId, null, protocolVersion);
     }
 
     /**
@@ -340,8 +304,8 @@ final class AdbProtocol {
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateReady(int localId, int remoteId) {
-        return generateMessage(A_OKAY, localId, remoteId, null);
+    public static byte[] generateReady(int localId, int remoteId, int protocolVersion) {
+        return generateMessage(A_OKAY, localId, remoteId, null, protocolVersion);
     }
 
     /**
@@ -389,7 +353,7 @@ final class AdbProtocol {
          * @throws StreamCorruptedException If data is corrupted.
          */
         @NonNull
-        public static Message parse(@NonNull InputStream in, int protocolVersion, int maxData) throws IOException {
+        public static Message parse(@NonNull InputStream in, int maxData) throws IOException {
             ByteBuffer header = ByteBuffer.allocate(ADB_HEADER_LENGTH).order(ByteOrder.LITTLE_ENDIAN);
 
             // Read header
@@ -431,13 +395,6 @@ final class AdbProtocol {
                 } else dataRead += bytesRead;
             } while (dataRead < msg.dataLength);
 
-            // Verify payload
-            if ((protocolVersion <= A_VERSION_MIN || (msg.command == A_CNXN && msg.arg0 <= A_VERSION_MIN))
-                    && getPayloadChecksum(msg.payload) != msg.dataCheck) {
-                // Checksum verification failed
-                throw new StreamCorruptedException("Invalid header: Checksum mismatched.");
-            }
-
             return msg;
         }
 
@@ -475,5 +432,4 @@ final class AdbProtocol {
                     '}';
         }
     }
-
 }

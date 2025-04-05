@@ -100,7 +100,7 @@ public class AdbStream implements Closeable {
      */
     void sendReady() throws IOException {
         // Generate and send a OKAY packet
-        mAdbConnection.sendPacket(AdbProtocol.generateReady(mLocalId, mRemoteId));
+        mAdbConnection.sendPacket(AdbProtocol.generateReady(mLocalId, mRemoteId, mAdbConnection.getProtocolVersion()));
     }
 
     /**
@@ -228,11 +228,11 @@ public class AdbStream implements Closeable {
         }
         while (length != 0) {
             if (length <= maxData) {
-                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, offset, length));
+                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, offset, length, mAdbConnection.getProtocolVersion()));
                 offset = offset + length;
                 length = 0;
             } else { // if (length > maxData) {
-                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, offset, maxData));
+                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, offset, maxData, mAdbConnection.getProtocolVersion()));
                 offset = offset + maxData;
                 length = length - maxData;
             }
@@ -262,7 +262,7 @@ public class AdbStream implements Closeable {
             notifyClose(false);
         }
 
-        mAdbConnection.sendPacket(AdbProtocol.generateClose(mLocalId, mRemoteId));
+        mAdbConnection.sendPacket(AdbProtocol.generateClose(mLocalId, mRemoteId, mAdbConnection.getProtocolVersion()));
     }
 
     /**

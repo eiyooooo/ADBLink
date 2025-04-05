@@ -2,7 +2,6 @@
 
 package com.eiyooooo.adb;
 
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.GuardedBy;
@@ -33,8 +32,6 @@ import javax.security.auth.DestroyFailedException;
  */
 // Copyright 2013 Cameron Gutman
 public class AdbConnection implements Closeable {
-    public static final String TAG = AdbConnection.class.getSimpleName();
-
     /**
      * The underlying socket that this class uses to communicate with the target device.
      */
@@ -45,8 +42,6 @@ public class AdbConnection implements Closeable {
     private final String mHost;
 
     private final int mPort;
-
-    private final int mApi;
 
     /**
      * The last allocated local stream ID. The ID chosen for the next stream will be this value + 1.
@@ -117,9 +112,9 @@ public class AdbConnection implements Closeable {
      * Specifies the maximum amount data that can be sent to the remote peer.
      * This is only valid after connect() returns successfully.
      */
-    private volatile int mMaxData;
+    private volatile int mMaxData = AdbProtocol.MAX_PAYLOAD;
 
-    private volatile int mProtocolVersion;
+    private volatile int mProtocolVersion = AdbProtocol.A_VERSION_MIN;
 
     @NonNull
     private final KeyPair mKeyPair;
@@ -152,49 +147,17 @@ public class AdbConnection implements Closeable {
      */
     @WorkerThread
     @NonNull
-    public static AdbConnection create(@NonNull String host, int port, @NonNull PrivateKey privateKey,
-                                       @NonNull Certificate certificate)
-            throws IOException {
-        return create(host, port, privateKey, certificate, Build.VERSION_CODES.BASE);
-    }
-
-    /**
-     * Creates a AdbConnection object associated with the socket and crypto object specified.
-     *
-     * @return A new AdbConnection object.
-     * @throws IOException If there is a socket error
-     */
-    @WorkerThread
-    @NonNull
-    public static AdbConnection create(@NonNull String host, int port, @NonNull PrivateKey privateKey,
-                                       @NonNull Certificate certificate, int api)
-            throws IOException {
-        return create(host, port, new KeyPair(Objects.requireNonNull(privateKey), Objects.requireNonNull(certificate)),
-                api);
-    }
-
-    /**
-     * Creates a AdbConnection object associated with the socket and crypto object specified.
-     *
-     * @return A new AdbConnection object.
-     * @throws IOException If there is a socket error
-     */
-    @WorkerThread
-    @NonNull
-    static AdbConnection create(@NonNull String host, int port, @NonNull KeyPair keyPair, int api) throws IOException {
-        return new AdbConnection(host, port, keyPair, api);
+    static AdbConnection create(@NonNull String host, int port, @NonNull KeyPair keyPair) throws IOException {
+        return new AdbConnection(host, port, keyPair);
     }
 
     /**
      * Internal constructor to initialize some internal state
      */
     @WorkerThread
-    private AdbConnection(@NonNull String host, int port, @NonNull KeyPair keyPair, int api) throws IOException {
+    private AdbConnection(@NonNull String host, int port, @NonNull KeyPair keyPair) throws IOException {
         this.mHost = Objects.requireNonNull(host);
         this.mPort = port;
-        this.mApi = api;
-        this.mProtocolVersion = AdbProtocol.getProtocolVersion(mApi);
-        this.mMaxData = AdbProtocol.getMaxData(mApi);
         this.mKeyPair = Objects.requireNonNull(keyPair);
         try {
             this.mSocket = new Socket(host, port);
@@ -237,7 +200,7 @@ public class AdbConnection implements Closeable {
             while (!mConnectionThread.isInterrupted()) {
                 try {
                     // Read and parse a message off the socket's input stream
-                    AdbProtocol.Message msg = AdbProtocol.Message.parse(getInputStream(), mProtocolVersion, mMaxData);
+                    AdbProtocol.Message msg = AdbProtocol.Message.parse(getInputStream(), mMaxData);
 
                     switch (msg.command) {
                         // Stream-oriented commands
@@ -278,13 +241,12 @@ public class AdbConnection implements Closeable {
                             break;
                         }
                         case AdbProtocol.A_STLS: {
-                            sendPacket(AdbProtocol.generateStls());
+                            sendPacket(AdbProtocol.generateStls(mProtocolVersion));
 
                             SSLContext sslContext = SslUtils.getSslContext(mKeyPair);
                             SSLSocket tlsSocket = (SSLSocket) sslContext.getSocketFactory()
                                     .createSocket(mSocket, mHost, mPort, true);
                             tlsSocket.startHandshake();
-                            Log.d(TAG, "Handshake succeeded.");
 
                             synchronized (AdbConnection.this) {
                                 mTlsInputStream = tlsSocket.getInputStream();
@@ -310,11 +272,11 @@ public class AdbConnection implements Closeable {
 
                                 // We've already tried our signature, so send our public key
                                 packet = AdbProtocol.generateAuth(AdbProtocol.ADB_AUTH_RSAPUBLICKEY, AndroidPubkey
-                                        .encodeWithName((RSAPublicKey) mKeyPair.getPublicKey(), mDeviceName));
+                                        .encodeWithName((RSAPublicKey) mKeyPair.getPublicKey(), mDeviceName), mProtocolVersion);
                             } else {
                                 // Sign the token
                                 packet = AdbProtocol.generateAuth(AdbProtocol.ADB_AUTH_SIGNATURE, AndroidPubkey
-                                        .adbAuthSign(mKeyPair.getPrivateKey(), msg.payload));
+                                        .adbAuthSign(mKeyPair.getPrivateKey(), msg.payload), mProtocolVersion);
                                 mSentSignature = true;
                             }
 
@@ -334,8 +296,6 @@ public class AdbConnection implements Closeable {
                         case AdbProtocol.A_OPEN:
                         case AdbProtocol.A_SYNC:
                         default:
-                            Log.e(TAG, String.format("Unrecognized command = 0x%x", msg.command));
-                            // Unrecognized packet, just drop it
                             break;
                     }
                 } catch (Exception e) {
@@ -366,12 +326,8 @@ public class AdbConnection implements Closeable {
     }
 
     /**
-     * Get the version of the ADB protocol supported by the ADB daemon. The result may depend on the API version
-     * specified and whether the connection has been established. In API 29 (Android 9) or later, the daemon returns
-     * {@link AdbProtocol#A_VERSION_SKIP_CHECKSUM} regardless of the protocol used to create the connection. So, if
-     * {@link #mApi} is set to API 28 or earlier but the OS version is Android 9 or later, before establishing the
-     * connection, it returns {@link AdbProtocol#A_VERSION_MIN}, and after establishing the connection, it returns
-     * {@link AdbProtocol#A_VERSION_SKIP_CHECKSUM}. In other cases, it always returns {@link AdbProtocol#A_VERSION_MIN}.
+     * Get the version of the ADB protocol supported by the ADB daemon. In API 29 (Android 9) or later, the daemon
+     * returns {@link AdbProtocol#A_VERSION_SKIP_CHECKSUM}. In other cases, it returns {@link AdbProtocol#A_VERSION_MIN}.
      *
      * @see #isConnectionEstablished()
      */
@@ -448,7 +404,7 @@ public class AdbConnection implements Closeable {
         }
 
         // Send CONNECT
-        sendPacket(AdbProtocol.generateConnect(mApi));
+        sendPacket(AdbProtocol.generateConnect(mProtocolVersion));
 
         // Start the connection thread to respond to the peer
         mConnectAttempted = true;
@@ -507,7 +463,7 @@ public class AdbConnection implements Closeable {
         mOpenedStreams.put(localId, stream);
 
         // Send OPEN
-        sendPacket(AdbProtocol.generateOpen(localId, Objects.requireNonNull(destination)));
+        sendPacket(AdbProtocol.generateOpen(localId, Objects.requireNonNull(destination), mProtocolVersion));
 
         // Wait for the connection thread to receive the OKAY
         synchronized (stream) {
@@ -611,7 +567,6 @@ public class AdbConnection implements Closeable {
     public static class Builder {
         private String mHost = "127.0.0.1";
         private int mPort = 5555;
-        private int mApi = Build.VERSION_CODES.BASE;
         private PrivateKey mPrivateKey;
         private Certificate mCertificate;
         private KeyPair mKeyPair;
@@ -652,18 +607,6 @@ public class AdbConnection implements Closeable {
         }
 
         /**
-         * Set Android API (i.e. SDK) version for this connection. If the ADB daemon and the client are located in the
-         * same device, the value should be {@link Build.VERSION#SDK_INT} in order to improve performance as well as
-         * security.
-         *
-         * @param api The API version, default is {@link Build.VERSION_CODES#BASE}.
-         */
-        public Builder setApi(int api) {
-            this.mApi = api;
-            return this;
-        }
-
-        /**
          * Set generated/stored private key.
          */
         public Builder setPrivateKey(PrivateKey privateKey) {
@@ -696,7 +639,7 @@ public class AdbConnection implements Closeable {
                 }
                 mKeyPair = new KeyPair(mPrivateKey, mCertificate);
             }
-            AdbConnection adbConnection = create(mHost, mPort, mKeyPair, mApi);
+            AdbConnection adbConnection = create(mHost, mPort, mKeyPair);
             if (mDeviceName != null) {
                 adbConnection.setDeviceName(mDeviceName);
             }

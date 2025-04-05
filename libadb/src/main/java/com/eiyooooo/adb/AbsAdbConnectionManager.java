@@ -3,7 +3,6 @@
 package com.eiyooooo.adb;
 
 import android.content.Context;
-import android.os.Build;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
@@ -32,7 +31,6 @@ public abstract class AbsAdbConnectionManager implements Closeable {
     @Nullable
     private AdbConnection mAdbConnection;
     private String mHostAddress = "127.0.0.1";
-    private int mApi = Build.VERSION_CODES.BASE;
     private long mTimeout = Long.MAX_VALUE;
     private TimeUnit mTimeoutUnit = TimeUnit.MILLISECONDS;
     private boolean mThrowOnUnauthorised = false;
@@ -69,23 +67,6 @@ public abstract class AbsAdbConnectionManager implements Closeable {
     @NonNull
     public String getHostAddress() {
         return mHostAddress;
-    }
-
-    /**
-     * Set Android API (i.e. SDK) version for this connection. If the daemon and the client are located in the same
-     * directory, the value should be {@link Build.VERSION#SDK_INT} in order to improve performance as well as security.
-     *
-     * @param api The API version, default is {@link Build.VERSION_CODES#BASE}.
-     */
-    public void setApi(int api) {
-        this.mApi = api;
-    }
-
-    /**
-     * Get Android API (i.e. SDK) version for this connection. Default value is {@link Build.VERSION_CODES#BASE}.
-     */
-    public int getApi() {
-        return mApi;
     }
 
     /**
@@ -267,7 +248,6 @@ public abstract class AbsAdbConnectionManager implements Closeable {
 
             mHostAddress = host;
             mAdbConnection = new AdbConnection.Builder(host, port)
-                    .setApi(mApi)
                     .setKeyPair(getAdbKeyPair())
                     .setDeviceName(Objects.requireNonNull(getDeviceName()))
                     .build();
@@ -309,7 +289,6 @@ public abstract class AbsAdbConnectionManager implements Closeable {
 
             mHostAddress = host;
             mAdbConnection = new AdbConnection.Builder(host, port)
-                    .setApi(mApi)
                     .setKeyPair(getAdbKeyPair())
                     .setDeviceName(Objects.requireNonNull(getDeviceName()))
                     .build();
@@ -337,7 +316,6 @@ public abstract class AbsAdbConnectionManager implements Closeable {
                 return false;
             }
             mAdbConnection = new AdbConnection.Builder(mHostAddress, port)
-                    .setApi(mApi)
                     .setKeyPair(getAdbKeyPair())
                     .setDeviceName(Objects.requireNonNull(getDeviceName()))
                     .build();
@@ -369,7 +347,6 @@ public abstract class AbsAdbConnectionManager implements Closeable {
             }
             mHostAddress = host;
             mAdbConnection = new AdbConnection.Builder(host, port)
-                    .setApi(mApi)
                     .setKeyPair(getAdbKeyPair())
                     .setDeviceName(Objects.requireNonNull(getDeviceName()))
                     .build();
