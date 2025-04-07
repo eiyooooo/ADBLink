@@ -177,9 +177,9 @@ object Preferences {
         get() = flowSharedPreferences.getBoolean("setFullScreen", true).asFlow()
 
     var enableLog
-        get() = sharedPreferences.get("enable_log", BuildConfig.DEBUG)
-        set(value) = sharedPreferences.put("enable_log", value)
+        get() = sharedPreferences.get("enableLog", BuildConfig.DEBUG)
+        set(value) = sharedPreferences.put("enableLog", value)
 
     val enableLogFlow
-        get() = flowSharedPreferences.getBoolean("enable_log", BuildConfig.DEBUG).asFlow()
+        get() = flowSharedPreferences.getBoolean("enableLog", BuildConfig.DEBUG).asFlow()
 }
