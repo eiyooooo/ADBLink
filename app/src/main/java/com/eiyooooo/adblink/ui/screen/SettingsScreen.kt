@@ -100,6 +100,8 @@ fun SettingsScreen(
                         .padding(end = 8.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     SettingsMenuItem(
                         title = stringResource(R.string.cast_settings),
                         icon = Icons.Default.DisplaySettings,
@@ -141,6 +143,8 @@ fun SettingsScreen(
                             selectedContent = NavRoutes.SETTINGS_ABOUT
                         }
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 Column(
