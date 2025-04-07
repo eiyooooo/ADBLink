@@ -48,6 +48,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
     ) {
         SettingSwitchItem(
             title = context.getString(R.string.use_system_color),
+            description = context.getString(R.string.use_system_color_description),
             checked = systemColor,
             onCheckedChange = {
                 Preferences.systemColor = it
@@ -113,6 +114,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
 
         SettingSwitchItem(
             title = context.getString(R.string.enable_log),
+            description = context.getString(R.string.enable_log_description),
             checked = enableLog,
             onCheckedChange = {
                 if (it) {

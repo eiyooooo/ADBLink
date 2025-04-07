@@ -64,6 +64,7 @@
     <string name="cast_full_fill_description">Stretch the frame to fill all available areas in full-screen mode when casting (Note: No stretching if the aspect ratio difference is too large)</string>
 
     <string name="use_system_color">Use system theme color</string>
+    <string name="use_system_color_description">Use the default theme color of the application when turned off</string>
     <string name="dark_theme">Dark theme</string>
     <string name="follow_system">Follow system</string>
     <string name="always_off">Always off</string>
@@ -73,8 +74,9 @@
     <string name="enable_usb">Enable USB detection</string>
     <string name="enable_usb_description">If you do not want to connect via USB, you can turn this off</string>
     <string name="full_screen">Immersive full screen mode</string>
-    <string name="full_screen_description">If you do not want the native navigation bar to disappear when in full screen mode, you can turn this off</string>
+    <string name="full_screen_description">Do not hide the local navigation bar in full screen mode when turned off</string>
     <string name="enable_log">"Enable log output</string>
+    <string name="enable_log_description">Enable log output for debugging</string>
     <string name="view_log">View log</string>
     <string name="view_local_ip">View local IP</string>
     <string name="customize_adb_key">Customize ADB key</string>

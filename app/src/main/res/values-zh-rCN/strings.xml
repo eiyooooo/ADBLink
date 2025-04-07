@@ -64,6 +64,7 @@
     <string name="cast_full_fill_description">投屏时全屏模式下画面拉伸并填充所有可用区域 (注: 比例相差过大时不拉伸)</string>
 
     <string name="use_system_color">使用系统主题颜色</string>
+    <string name="use_system_color_description">关闭后使用应用默认主题颜色</string>
     <string name="dark_theme">深色主题</string>
     <string name="follow_system">跟随系统</string>
     <string name="always_off">总是关闭</string>
@@ -73,9 +74,10 @@
     <string name="enable_usb">启用USB设备检测</string>
     <string name="enable_usb_description">若不希望使用有线连接，可关闭</string>
     <string name="full_screen">沉浸式全屏模式</string>
-    <string name="full_screen_description">若不希望全屏模式时本机导航栏消失，可关闭</string>
+    <string name="full_screen_description">关闭后全屏模式时不隐藏本机导航栏</string>
     <string name="enable_log">开启日志输出</string>
     <string name="view_log">查看日志</string>
+    <string name="enable_log_description">开启后输出日志以供调试</string>
     <string name="view_local_ip">查看本机IP</string>
     <string name="customize_adb_key">自定义ADB密钥</string>
     <string name="regenerate">重新生成</string>
