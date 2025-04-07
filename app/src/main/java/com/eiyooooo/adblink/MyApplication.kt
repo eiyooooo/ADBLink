@@ -1,9 +1,11 @@
 package com.eiyooooo.adblink
 
 import android.app.Application
-import timber.log.Timber
+import android.content.Context
 import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.util.FLog
+import com.eiyooooo.adblink.util.LanguageUtil
+import timber.log.Timber
 import java.util.Date
 
 lateinit var application: MyApplication private set
@@ -20,10 +22,13 @@ class MyApplication : Application() {
         application = this
         appStartTime = Date()
 
-        Preferences.init(this)
-
         FLog.init(this)
         if (Preferences.enableLog) FLog.start()
         Timber.i("App started at: $appStartTime")
+    }
+
+    override fun attachBaseContext(base: Context) {
+        Preferences.init(base)
+        super.attachBaseContext(LanguageUtil.setLocale(base))
     }
 }

@@ -1,5 +1,6 @@
 package com.eiyooooo.adblink
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,6 +10,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.navigation.compose.rememberNavController
 import com.eiyooooo.adblink.ui.navigation.MainScaffold
 import com.eiyooooo.adblink.ui.theme.AppTheme
+import com.eiyooooo.adblink.util.LanguageUtil
 
 class MainActivity : ComponentActivity() {
 
@@ -24,5 +26,9 @@ class MainActivity : ComponentActivity() {
                 MainScaffold(navController, windowSizeClass)
             }
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageUtil.setLocale(newBase))
     }
 }

@@ -42,6 +42,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
     val enableUSB by Preferences.enableUSBFlow.collectAsState(initial = Preferences.enableUSB)
     val setFullScreen by Preferences.setFullScreenFlow.collectAsState(initial = Preferences.setFullScreen)
     val enableLog by Preferences.enableLogFlow.collectAsState(initial = Preferences.enableLog)
+    val appLanguage by Preferences.appLanguageFlow.collectAsState(initial = Preferences.appLanguage)
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -77,6 +78,31 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
                 }
                 AppCompatDelegate.setDefaultNightMode(Preferences.darkTheme)
                 (context as? Activity)?.recreate()
+            }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+        val languageList = listOf(
+            context.getString(R.string.system_language),
+            context.getString(R.string.english),
+            context.getString(R.string.simplified_chinese)
+        )
+        SettingDropdownItem(
+            title = context.getString(R.string.app_language),
+            currentValue = languageList[appLanguage],
+            options = languageList,
+            onValueChange = { language ->
+                val newValue = when (language) {
+                    context.getString(R.string.system_language) -> 0
+                    context.getString(R.string.english) -> 1
+                    context.getString(R.string.simplified_chinese) -> 2
+                    else -> 0
+                }
+                if (newValue != Preferences.appLanguage) {
+                    Preferences.appLanguage = newValue
+                    (context as? Activity)?.recreate()
+                }
             }
         )
 

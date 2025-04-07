@@ -152,6 +152,13 @@ object Preferences {
     val darkThemeFlow
         get() = flowSharedPreferences.getInt("darkTheme", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM).asFlow()
 
+    var appLanguage
+        get() = sharedPreferences.get("appLanguage", 0)
+        set(value) = sharedPreferences.put("appLanguage", value)
+
+    val appLanguageFlow
+        get() = flowSharedPreferences.getInt("appLanguage", 0).asFlow()
+
     var audioChannel
         get() = sharedPreferences.get("audioChannel", 0)
         set(value) = sharedPreferences.put("audioChannel", value)
