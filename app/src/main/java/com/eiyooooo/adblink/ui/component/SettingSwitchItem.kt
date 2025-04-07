@@ -58,7 +58,7 @@ fun SettingSwitchItem(
 
         Switch(
             checked = checked,
-            onCheckedChange = null,
+            onCheckedChange = { onCheckedChange(it) },
             enabled = enabled,
             modifier = Modifier.padding(start = 16.dp)
         )
