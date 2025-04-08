@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
 
-package com.eiyooooo.adb;
-
-import android.util.Log;
+package com.eiyooooo.adblink.adb;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
@@ -16,8 +14,6 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
 import java.net.Socket;
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.security.auth.DestroyFailedException;
+
+import timber.log.Timber;
 
 /**
  * This class represents an ADB connection.
@@ -117,10 +114,7 @@ public class AdbConnection implements Closeable {
     private volatile int mProtocolVersion = AdbProtocol.A_VERSION_MIN;
 
     @NonNull
-    private final KeyPair mKeyPair;
-
-    @NonNull
-    private volatile String mDeviceName = "Unknown Device";
+    private final AdbKeyPair mAdbKeyPair;
 
     /**
      * Specifies whether this connection has already sent a signed token.
@@ -147,18 +141,18 @@ public class AdbConnection implements Closeable {
      */
     @WorkerThread
     @NonNull
-    static AdbConnection create(@NonNull String host, int port, @NonNull KeyPair keyPair) throws IOException {
-        return new AdbConnection(host, port, keyPair);
+    static AdbConnection create(@NonNull String host, int port, @NonNull AdbKeyPair adbKeyPair) throws IOException {
+        return new AdbConnection(host, port, adbKeyPair);
     }
 
     /**
      * Internal constructor to initialize some internal state
      */
     @WorkerThread
-    private AdbConnection(@NonNull String host, int port, @NonNull KeyPair keyPair) throws IOException {
+    private AdbConnection(@NonNull String host, int port, @NonNull AdbKeyPair adbKeyPair) throws IOException {
         this.mHost = Objects.requireNonNull(host);
         this.mPort = port;
-        this.mKeyPair = Objects.requireNonNull(keyPair);
+        this.mAdbKeyPair = Objects.requireNonNull(adbKeyPair);
         try {
             this.mSocket = new Socket(host, port);
         } catch (Throwable th) {
@@ -243,7 +237,7 @@ public class AdbConnection implements Closeable {
                         case AdbProtocol.A_STLS: {
                             sendPacket(AdbProtocol.generateStls(mProtocolVersion));
 
-                            SSLContext sslContext = SslUtils.getSslContext(mKeyPair);
+                            SSLContext sslContext = SslUtil.getSslContext(mAdbKeyPair);
                             SSLSocket tlsSocket = (SSLSocket) sslContext.getSocketFactory()
                                     .createSocket(mSocket, mHost, mPort, true);
                             tlsSocket.startHandshake();
@@ -272,11 +266,11 @@ public class AdbConnection implements Closeable {
 
                                 // We've already tried our signature, so send our public key
                                 packet = AdbProtocol.generateAuth(AdbProtocol.ADB_AUTH_RSAPUBLICKEY, AndroidPubkey
-                                        .encodeWithName((RSAPublicKey) mKeyPair.getPublicKey(), mDeviceName), mProtocolVersion);
+                                        .encodeWithName((RSAPublicKey) mAdbKeyPair.getPublicKey(), mAdbKeyPair.getKeyName()), mProtocolVersion);
                             } else {
                                 // Sign the token
                                 packet = AdbProtocol.generateAuth(AdbProtocol.ADB_AUTH_SIGNATURE, AndroidPubkey
-                                        .adbAuthSign(mKeyPair.getPrivateKey(), msg.payload), mProtocolVersion);
+                                        .adbAuthSign(mAdbKeyPair.getPrivateKey(), msg.payload), mProtocolVersion);
                                 mSentSignature = true;
                             }
 
@@ -300,7 +294,7 @@ public class AdbConnection implements Closeable {
                     }
                 } catch (Exception e) {
                     mConnectionException = e;
-                    e.printStackTrace();
+                    Timber.e(e, "Connection error");
                     // The cleanup is taken care of by a combination of this thread and close()
                     break;
                 }
@@ -314,15 +308,6 @@ public class AdbConnection implements Closeable {
                 mConnectAttempted = false;
             }
         });
-    }
-
-    /**
-     * Set a name for the device. Default is “Unknown Device”.
-     *
-     * @param deviceName Name of the device, could be the app label, hostname or user@hostname.
-     */
-    public void setDeviceName(@NonNull String deviceName) {
-        this.mDeviceName = Objects.requireNonNull(deviceName);
     }
 
     /**
@@ -542,12 +527,6 @@ public class AdbConnection implements Closeable {
             mConnectionThread.join();
         } catch (InterruptedException ignored) {
         }
-
-        // Destroy keypair
-        try {
-            mKeyPair.destroy();
-        } catch (DestroyFailedException ignore) {
-        }
     }
 
     void sendPacket(byte[] packet) throws IOException {
@@ -561,130 +540,6 @@ public class AdbConnection implements Closeable {
     void flushPacket() throws IOException {
         synchronized (mLock) {
             getOutputStream().flush();
-        }
-    }
-
-    public static class Builder {
-        private String mHost = "127.0.0.1";
-        private int mPort = 5555;
-        private PrivateKey mPrivateKey;
-        private Certificate mCertificate;
-        private KeyPair mKeyPair;
-        private String mDeviceName;
-
-        public Builder() {
-        }
-
-        public Builder(String host, int port) {
-            mHost = host;
-            mPort = port;
-        }
-
-        /**
-         * Set host address. Default is 127.0.0.1
-         */
-        public Builder setHost(String host) {
-            this.mHost = host;
-            return this;
-        }
-
-        /**
-         * Set port number. Default is 5555.
-         */
-        public Builder setPort(int port) {
-            this.mPort = port;
-            return this;
-        }
-
-        /**
-         * Set a name for the device. Default is “Unknown Device”.
-         *
-         * @param deviceName Name of the device, could be the app label, hostname or user@hostname.
-         */
-        public Builder setDeviceName(String deviceName) {
-            this.mDeviceName = deviceName;
-            return this;
-        }
-
-        /**
-         * Set generated/stored private key.
-         */
-        public Builder setPrivateKey(PrivateKey privateKey) {
-            this.mPrivateKey = privateKey;
-            return this;
-        }
-
-        /**
-         * Set public key wrapped around a certificate
-         */
-        public Builder setCertificate(Certificate certificate) {
-            this.mCertificate = certificate;
-            return this;
-        }
-
-        Builder setKeyPair(KeyPair keyPair) {
-            this.mKeyPair = keyPair;
-            return this;
-        }
-
-        /**
-         * Creates a new {@link AdbConnection} associated with the socket and crypto object specified.
-         *
-         * @throws IOException If there was an error while establishing a socket connection
-         */
-        public AdbConnection build() throws IOException {
-            if (mKeyPair == null) {
-                if (mPrivateKey == null || mCertificate == null) {
-                    throw new UnsupportedOperationException("Private key and certificate must be set.");
-                }
-                mKeyPair = new KeyPair(mPrivateKey, mCertificate);
-            }
-            AdbConnection adbConnection = create(mHost, mPort, mKeyPair);
-            if (mDeviceName != null) {
-                adbConnection.setDeviceName(mDeviceName);
-            }
-            return adbConnection;
-        }
-
-        /**
-         * Same as {@link #connect(long, TimeUnit, boolean)} without throwing anything if the first authentication
-         * attempt fails.
-         *
-         * @return The underlying {@link AdbConnection}
-         * @throws IOException                 If the socket fails while connecting
-         * @throws InterruptedException        If timeout has reached
-         * @throws AdbPairingRequiredException If ADB lacks pairing
-         */
-        public AdbConnection connect() throws IOException, InterruptedException, AdbPairingRequiredException {
-            AdbConnection adbConnection = build();
-            if (adbConnection.connect()) {
-                throw new IOException("Unable to establish a new connection.");
-            }
-            return adbConnection;
-        }
-
-        /**
-         * Connects to the remote device. This routine will block until the connection completes or the timeout elapses.
-         *
-         * @param timeout             the time to wait for the lock
-         * @param unit                the time unit of the timeout argument
-         * @param throwOnUnauthorised Whether to throw an {@link AdbAuthenticationFailedException}
-         *                            if the peer rejects out first authentication attempt
-         * @return {@code true} if the connection was established, or {@code false} if the connection timed out
-         * @throws IOException                      If the socket fails while connecting
-         * @throws InterruptedException             If timeout has reached
-         * @throws AdbAuthenticationFailedException If {@code throwOnUnauthorised} is {@code true} and the peer rejects
-         *                                          the first authentication attempt, which indicates that the peer has
-         *                                          not saved the public key from a previous connection
-         * @throws AdbPairingRequiredException      If ADB lacks pairing
-         */
-        public AdbConnection connect(long timeout, @NonNull TimeUnit unit, boolean throwOnUnauthorised)
-                throws IOException, InterruptedException, AdbPairingRequiredException {
-            AdbConnection adbConnection = build();
-            if (adbConnection.connect(timeout, unit, throwOnUnauthorised)) {
-                throw new IOException("Unable to establish a new connection.");
-            }
-            return adbConnection;
         }
     }
 }

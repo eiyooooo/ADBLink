@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
 
-package com.eiyooooo.adb;
+package com.eiyooooo.adblink.adb;
 
 /**
  * Thrown when the ADB daemon rejects our initial authentication attempt, which typically means that the peer has not

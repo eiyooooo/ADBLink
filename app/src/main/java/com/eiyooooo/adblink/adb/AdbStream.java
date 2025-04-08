@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
 
-package com.eiyooooo.adb;
+package com.eiyooooo.adblink.adb;
 
 import java.io.Closeable;
 import java.io.IOException;

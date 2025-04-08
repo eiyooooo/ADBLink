@@ -1,0 +1,187 @@
+package com.eiyooooo.adblink.adb
+
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
+import android.os.Build
+import android.os.ext.SdkExtensions
+import androidx.annotation.RequiresExtension
+import androidx.annotation.StringDef
+import com.eiyooooo.adblink.entity.SystemServices.nsdManager
+import timber.log.Timber
+
+class AdbMdns(
+    @ServiceType serviceType: String,
+    private val listener: (List<NsdServiceInfo>) -> Unit
+) {
+    private val serviceTypeFormatted: String = String.format("_%s._tcp", serviceType)
+    private val discoveryListener: NsdManager.DiscoveryListener = DiscoveryListener(this)
+    private val serviceInfoList: MutableList<NsdServiceInfo> = mutableListOf()
+    private val serviceInfoCallbacks: MutableMap<String, ServiceInfoCallback> by lazy { mutableMapOf() }
+
+    private var registered = false //TODO: retry if failed
+    private var running = false //TODO: retry if failed
+
+    fun start() {
+        if (running) return
+        running = true
+        if (!registered) {
+            try {
+                nsdManager.discoverServices(serviceTypeFormatted, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to start service discovery for $serviceTypeFormatted")
+            }
+        }
+    }
+
+    fun stop() {
+        if (!running) return
+        running = false
+        if (registered) {
+            try {
+                nsdManager.stopServiceDiscovery(discoveryListener)
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to stop service discovery for $serviceTypeFormatted")
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 7)
+        ) {
+            serviceInfoCallbacks.values.forEach { callback ->
+                try {
+                    nsdManager.unregisterServiceInfoCallback(callback)
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to unregister service info callback for ${callback.serviceInfo.serviceName}")
+                }
+            }
+            serviceInfoCallbacks.clear()
+        }
+
+        serviceInfoList.clear()
+        notifyListener()
+    }
+
+    private fun onDiscoveryStart() {
+        registered = true
+    }
+
+    private fun onDiscoverStop() {
+        registered = false
+    }
+
+    @Suppress("DEPRECATION")
+    private fun onServiceFound(serviceInfo: NsdServiceInfo, tryRegister: Boolean = true) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 7)
+        ) {
+            if (tryRegister) {
+                val callback = ServiceInfoCallback(this, serviceInfo)
+                serviceInfoCallbacks[serviceInfo.serviceName] = callback
+                nsdManager.registerServiceInfoCallback(serviceInfo, Runnable::run, callback)
+                return
+            } else {
+                serviceInfoCallbacks.remove(serviceInfo.serviceName)?.let { callback ->
+                    try {
+                        nsdManager.unregisterServiceInfoCallback(callback)
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+        nsdManager.resolveService(serviceInfo, ResolveListener(this))
+    }
+
+    private fun onServiceLost(serviceInfo: NsdServiceInfo) {
+        val index = serviceInfoList.indexOfFirst { it.serviceName == serviceInfo.serviceName }
+        if (index != -1) {
+            serviceInfoList.removeAt(index)
+            notifyListener()
+        }
+    }
+
+    private fun onServiceResolved(serviceInfo: NsdServiceInfo) {
+        if (!running) return
+        val index = serviceInfoList.indexOfFirst { it.serviceName == serviceInfo.serviceName }
+        if (index != -1) {
+            serviceInfoList[index] = serviceInfo
+        } else {
+            serviceInfoList.add(serviceInfo)
+        }
+        notifyListener()
+    }
+
+    private fun notifyListener() {
+        listener(ArrayList(serviceInfoList))
+    }
+
+    private class DiscoveryListener(private val adbMdns: AdbMdns) : NsdManager.DiscoveryListener {
+        override fun onDiscoveryStarted(serviceType: String) {
+            adbMdns.onDiscoveryStart()
+        }
+
+        override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
+            Timber.d("ServiceType: $serviceType startDiscoveryFailed errorCode: $errorCode")
+        }
+
+        override fun onDiscoveryStopped(serviceType: String) {
+            adbMdns.onDiscoverStop()
+        }
+
+        override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
+            Timber.d("ServiceType: $serviceType stopDiscoveryFailed errorCode: $errorCode")
+        }
+
+        override fun onServiceFound(serviceInfo: NsdServiceInfo) {
+            adbMdns.onServiceFound(serviceInfo)
+        }
+
+        override fun onServiceLost(serviceInfo: NsdServiceInfo) {
+            adbMdns.onServiceLost(serviceInfo)
+        }
+    }
+
+    private class ResolveListener(private val adbMdns: AdbMdns) : NsdManager.ResolveListener {
+        override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
+            Timber.d("NsdServiceInfo: $serviceInfo errorCode: $errorCode")
+        }
+
+        override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
+            adbMdns.onServiceResolved(serviceInfo)
+        }
+    }
+
+    @RequiresExtension(extension = Build.VERSION_CODES.TIRAMISU, version = 7)
+    private class ServiceInfoCallback(private val adbMdns: AdbMdns, val serviceInfo: NsdServiceInfo) : NsdManager.ServiceInfoCallback {
+        override fun onServiceInfoCallbackRegistrationFailed(errorCode: Int) {
+            adbMdns.onServiceFound(serviceInfo, false)
+        }
+
+        override fun onServiceUpdated(serviceInfo: NsdServiceInfo) {
+            adbMdns.onServiceResolved(serviceInfo)
+        }
+
+        override fun onServiceLost() {
+            adbMdns.onServiceLost(serviceInfo)
+        }
+
+        override fun onServiceInfoCallbackUnregistered() {
+            Timber.d("ServiceInfoCallback unregistered for ${serviceInfo.serviceName}")
+        }
+    }
+
+    companion object {
+        const val SERVICE_TYPE_ADB = "adb"
+        const val SERVICE_TYPE_TLS_PAIRING = "adb-tls-pairing"
+        const val SERVICE_TYPE_TLS_CONNECT = "adb-tls-connect"
+
+        @StringDef(
+            SERVICE_TYPE_ADB,
+            SERVICE_TYPE_TLS_PAIRING,
+            SERVICE_TYPE_TLS_CONNECT
+        )
+        @Retention(AnnotationRetention.SOURCE)
+        annotation class ServiceType
+    }
+}

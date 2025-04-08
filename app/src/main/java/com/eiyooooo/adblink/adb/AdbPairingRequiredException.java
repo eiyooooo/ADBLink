@@ -1,4 +1,4 @@
-package com.eiyooooo.adb;
+package com.eiyooooo.adblink.adb;
 
 public class AdbPairingRequiredException extends Exception {
     public AdbPairingRequiredException(String message) {

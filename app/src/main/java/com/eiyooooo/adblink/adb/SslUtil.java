@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
 
-package com.eiyooooo.adb;
+package com.eiyooooo.adblink.adb;
 
 import android.annotation.SuppressLint;
 import android.os.Build;
@@ -21,7 +21,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509TrustManager;
 
-final class SslUtils {
+final class SslUtil {
     private static boolean customConscrypt = false;
     private static SSLContext sslContext;
 
@@ -30,14 +30,14 @@ final class SslUtils {
     }
 
     @NonNull
-    public static SSLContext getSslContext(KeyPair keyPair) throws NoSuchAlgorithmException, KeyManagementException {
+    public static SSLContext getSslContext(AdbKeyPair adbKeyPair) throws NoSuchAlgorithmException, KeyManagementException {
         if (sslContext != null) {
             return sslContext;
         }
         try {
             Class<?> providerClass = Class.forName("org.conscrypt.OpenSSLProvider");
-            Provider openSslProvder = (Provider) providerClass.getDeclaredConstructor().newInstance();
-            sslContext = SSLContext.getInstance("TLSv1.3", openSslProvder);
+            Provider openSslProvider = (Provider) providerClass.getDeclaredConstructor().newInstance();
+            sslContext = SSLContext.getInstance("TLSv1.3", openSslProvider);
             customConscrypt = true;
         } catch (NoSuchAlgorithmException e) {
             throw e;
@@ -50,14 +50,14 @@ final class SslUtils {
             customConscrypt = false;
         }
         System.out.println("Using " + (customConscrypt ? "custom" : "default") + " TLSv1.3 provider...");
-        sslContext.init(new KeyManager[]{getKeyManager(keyPair)},
+        sslContext.init(new KeyManager[]{getKeyManager(adbKeyPair)},
                 new X509TrustManager[]{getAllAcceptingTrustManager()},
                 new SecureRandom());
         return sslContext;
     }
 
     @NonNull
-    private static KeyManager getKeyManager(KeyPair keyPair) {
+    private static KeyManager getKeyManager(AdbKeyPair adbKeyPair) {
         return new X509ExtendedKeyManager() {
             private final String mAlias = "key";
 
@@ -87,7 +87,7 @@ final class SslUtils {
             @Override
             public X509Certificate[] getCertificateChain(String alias) {
                 if (this.mAlias.equals(alias)) {
-                    return new X509Certificate[]{(X509Certificate) keyPair.getCertificate()};
+                    return new X509Certificate[]{(X509Certificate) adbKeyPair.getCertificate()};
                 }
                 return null;
             }
@@ -95,7 +95,7 @@ final class SslUtils {
             @Override
             public PrivateKey getPrivateKey(String alias) {
                 if (this.mAlias.equals(alias)) {
-                    return keyPair.getPrivateKey();
+                    return adbKeyPair.getPrivateKey();
                 }
                 return null;
             }
