@@ -93,7 +93,7 @@ fun AppTheme(
     darkTheme: Boolean = when (Preferences.darkTheme) {
         AppCompatDelegate.MODE_NIGHT_YES -> true
         AppCompatDelegate.MODE_NIGHT_NO -> false
-        else -> isSystemInDarkTheme()
+        else -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isSystemInDarkTheme()
     },
     dynamicColor: Boolean = Preferences.systemColor,
     content: @Composable () -> Unit

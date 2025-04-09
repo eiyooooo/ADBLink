@@ -1,6 +1,7 @@
 package com.eiyooooo.adblink.ui.screen
 
 import android.app.Activity
+import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -47,27 +48,47 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
-        SettingSwitchItem(
-            title = context.getString(R.string.use_system_color),
-            description = context.getString(R.string.use_system_color_description),
-            checked = systemColor,
-            onCheckedChange = {
-                Preferences.systemColor = it
-                (context as? Activity)?.recreate()
-            },
-            isFirst = true
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Column {
+                SettingSwitchItem(
+                    title = context.getString(R.string.use_system_color),
+                    description = context.getString(R.string.use_system_color_description),
+                    checked = systemColor,
+                    onCheckedChange = {
+                        Preferences.systemColor = it
+                        (context as? Activity)?.recreate()
+                    },
+                    isFirst = true
+                )
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+        }
 
-        val darkThemeList = listOf(
-            context.getString(R.string.follow_system),
-            context.getString(R.string.always_off),
-            context.getString(R.string.always_on)
-        )
+        val darkThemeList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            listOf(
+                context.getString(R.string.follow_system),
+                context.getString(R.string.always_off),
+                context.getString(R.string.always_on)
+            )
+        } else {
+            listOf(
+                context.getString(R.string.always_off),
+                context.getString(R.string.always_on)
+            )
+        }
+        val currentThemeIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            darkTheme.coerceAtLeast(0)
+        } else {
+            when (darkTheme) {
+                AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM -> 0
+                AppCompatDelegate.MODE_NIGHT_NO -> 0
+                else -> 1
+            }
+        }
         SettingDropdownItem(
             title = context.getString(R.string.dark_theme),
-            currentValue = darkThemeList[darkTheme.coerceAtLeast(0)],
+            currentValue = darkThemeList[currentThemeIndex],
             options = darkThemeList,
             onValueChange = {
                 Preferences.darkTheme = when (it) {
@@ -78,7 +99,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
                 }
                 AppCompatDelegate.setDefaultNightMode(Preferences.darkTheme)
                 (context as? Activity)?.recreate()
-            }
+            },
+            isFirst = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
         )
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
