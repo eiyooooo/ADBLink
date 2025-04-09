@@ -1,10 +1,17 @@
 package com.eiyooooo.adblink.util
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
-import androidx.core.content.FileProvider
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.eiyooooo.adblink.BuildConfig
 import com.eiyooooo.adblink.MyApplication.Companion.appStartTime
 import com.eiyooooo.adblink.R
@@ -23,6 +30,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileReader
 import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -40,16 +49,48 @@ object FLog {
 
     private var writerJob: Job? = null
 
+    @SuppressLint("LogNotTimber")
     fun init(context: Context) {
         val logsDir = File(context.cacheDir, "logs")
         if (!logsDir.exists()) logsDir.mkdirs()
-        val logFiles = logsDir.listFiles { _, name -> name.endsWith(".log") }
-        logFiles?.forEach { file ->
-            if (file.exists()) {
-                file.delete()
+
+        val oldLogFiles = logsDir.listFiles { file ->
+            file.isFile && file.name.startsWith("ADBLink-") && file.name.endsWith(".txt")
+        }
+        logFile = File(logsDir, "ADBLink-${BuildConfig.VERSION_NAME}-${appStartTime.time}.txt")
+
+        if (oldLogFiles != null && oldLogFiles.isNotEmpty()) {
+            val sortedLogFiles = oldLogFiles.sortedBy { file ->
+                val regex = "ADBLink-.*-(\\d+)\\.txt".toRegex()
+                val match = regex.find(file.name)
+                match?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+            }
+
+            FileWriter(logFile, true).use { writer ->
+                val buffer = CharArray(8192)
+                sortedLogFiles.forEach { file ->
+                    try {
+                        if (file.exists()) {
+                            FileReader(file).use { reader ->
+                                var charsRead: Int
+                                while (reader.read(buffer).also { charsRead = it } > 0) {
+                                    writer.write(buffer, 0, charsRead)
+                                }
+                                writer.write("\n")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FLog", "Error reading log file ${file.name}", e)
+                    }
+                }
+            }
+
+            oldLogFiles.forEach { file ->
+                if (file.exists()) {
+                    file.delete()
+                }
             }
         }
-        logFile = File(logsDir, "ADBLink-${BuildConfig.VERSION_NAME}-${appStartTime.time}.log")
     }
 
     private fun append(logDateFormat: SimpleDateFormat, priority: Int, tag: String?, message: String) {
@@ -65,7 +106,7 @@ object FLog {
             else -> "A"
         }
         val logTag = tag ?: "NoTag"
-        val logMessage = "$timeStamp [$priorityStr/$logTag]: $message\n"
+        val logMessage = "$PREFIX $timeStamp [$priorityStr/$logTag]: $message\n"
 
         logScope.launch {
             logChannel.send(logMessage)
@@ -154,24 +195,49 @@ object FLog {
         }
     }
 
-    fun export(context: Context) {
+    fun export(context: Context, showSnackbar: (String) -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (context is Activity) {
+                    ActivityCompat.requestPermissions(context, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0)
+                }
+                showSnackbar(context.getString(R.string.storage_permission_required))
+                return
+            }
+        }
+
         logScope.launch {
             try {
-                val fileUri = logFile?.let {
-                    writeLast()
-                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", it)
-                } ?: throw IllegalStateException("Log file not found")
-
-                val shareIntent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_STREAM, fileUri)
-                    type = "text/plain"
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                writeLast()
+                val sourceFile = logFile ?: throw IllegalStateException("Log file not found")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.Downloads.DISPLAY_NAME, sourceFile.name)
+                        put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                        put(MediaStore.Downloads.RELATIVE_PATH, "Download/ADBLink")
+                    }
+                    val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                    uri?.let { outputUri ->
+                        context.contentResolver.openOutputStream(outputUri)?.use { outputStream ->
+                            FileInputStream(sourceFile).use { inputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                        }
+                        showSnackbar(context.getString(R.string.log_export_success))
+                    }
+                } else {
+                    val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    val adbLinkDir = File(downloadDir, "ADBLink")
+                    if (!adbLinkDir.exists()) {
+                        adbLinkDir.mkdirs()
+                    }
+                    val destinationFile = File(adbLinkDir, sourceFile.name)
+                    sourceFile.copyTo(destinationFile, overwrite = true)
+                    showSnackbar(context.getString(R.string.log_export_success))
                 }
-
-                context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.export_logs)))
             } catch (e: Exception) {
                 Timber.e(e, "Error occurred while exporting logs")
+                showSnackbar(context.getString(R.string.log_export_failed, e.message))
             }
         }
     }

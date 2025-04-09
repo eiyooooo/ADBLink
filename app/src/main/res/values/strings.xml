@@ -94,4 +94,7 @@
 
     <string name="app_log">App log</string>
     <string name="export_logs">Export logs</string>
+    <string name="log_export_success">Logs exported to Download/ADBLink folder</string>
+    <string name="log_export_failed">Log export failed: %1$s</string>
+    <string name="storage_permission_required">Storage permission is required to export logs</string>
 </resources>

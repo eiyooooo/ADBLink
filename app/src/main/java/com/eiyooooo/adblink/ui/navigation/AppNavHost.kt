@@ -63,7 +63,7 @@ fun AppNavHost(
                 OtherSettingsScreen(navController)
             }
             composable(route = NavRoutes.SETTINGS_OTHER_LOG) {
-                LogScreen()
+                LogScreen(showSnackbar)
             }
             composable(route = NavRoutes.SETTINGS_OTHER_IP) {
                 IpScreen(showSnackbar)

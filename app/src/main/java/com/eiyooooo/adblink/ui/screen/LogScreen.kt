@@ -38,7 +38,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LogContent() {//TODO
+fun LogContent(showSnackbar: (String) -> Unit) {//TODO
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -133,7 +133,7 @@ fun LogContent() {//TODO
         )
 
         Button(
-            onClick = { FLog.export(context) },
+            onClick = { FLog.export(context, showSnackbar) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
@@ -149,7 +149,7 @@ fun LogContent() {//TODO
 }
 
 @Composable
-fun LogScreen() {
+fun LogScreen(showSnackbar: (String) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -159,7 +159,7 @@ fun LogScreen() {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            LogContent()
+            LogContent(showSnackbar)
         }
     }
 }

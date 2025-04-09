@@ -175,7 +175,7 @@ fun SettingsScreen(
                         NavRoutes.SETTINGS_OTHER -> OtherSettingsContent { selectedContent = it }
                         NavRoutes.SETTINGS_OTHER_IP -> IpContent(showSnackbar)
                         NavRoutes.SETTINGS_OTHER_ADB_KEY -> AdbKeyContent()
-                        NavRoutes.SETTINGS_OTHER_LOG -> LogContent()
+                        NavRoutes.SETTINGS_OTHER_LOG -> LogContent(showSnackbar)
                         NavRoutes.SETTINGS_ABOUT -> AboutContent()
                     }
                 }

@@ -94,4 +94,7 @@
 
     <string name="app_log">应用日志</string>
     <string name="export_logs">导出日志</string>
+    <string name="log_export_success">日志已导出到 Download/ADBLink 文件夹</string>
+    <string name="log_export_failed">日志导出失败: %1$s</string>
+    <string name="storage_permission_required">需要存储权限来导出日志</string>
 </resources>
