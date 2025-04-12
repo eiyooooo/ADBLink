@@ -7,6 +7,8 @@ import android.os.ext.SdkExtensions
 import androidx.annotation.RequiresExtension
 import androidx.annotation.StringDef
 import com.eiyooooo.adblink.entity.SystemServices.nsdManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
 
 class AdbMdns(
@@ -18,25 +20,45 @@ class AdbMdns(
     private val serviceInfoList: MutableList<NsdServiceInfo> = mutableListOf()
     private val serviceInfoCallbacks: MutableMap<String, ServiceInfoCallback> by lazy { mutableMapOf() }
 
-    private var registered = false //TODO: retry if failed
-    private var running = false //TODO: retry if failed
+    private val _state = MutableStateFlow(DiscoveryState.STOPPED)
+    val state: StateFlow<DiscoveryState> = _state
 
     fun start() {
-        if (running) return
-        running = true
-        if (!registered) {
-            try {
-                nsdManager.discoverServices(serviceTypeFormatted, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
-            } catch (e: Exception) {
-                Timber.w(e, "Failed to start service discovery for $serviceTypeFormatted")
-            }
+        if (_state.value != DiscoveryState.STOPPED) {
+            Timber.w("ServiceType: $serviceTypeFormatted discovery already started")
+            return
+        }
+
+        Timber.d("ServiceType: $serviceTypeFormatted discovery starting")
+        _state.value = DiscoveryState.STARTING
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 7)
+        ) {
+            serviceInfoCallbacks.clear()
+        }
+        serviceInfoList.clear()
+
+        try {
+            nsdManager.discoverServices(serviceTypeFormatted, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to start service discovery for $serviceTypeFormatted")
+            _state.value = DiscoveryState.STOPPED
         }
     }
 
     fun stop() {
-        if (!running) return
-        running = false
-        if (registered) {
+        if (_state.value == DiscoveryState.STOPPED) {
+            Timber.w("ServiceType: $serviceTypeFormatted discovery already stopped")
+            return
+        }
+
+        Timber.d("ServiceType: $serviceTypeFormatted discovery stopping")
+        val previousState = _state.value
+        _state.value = DiscoveryState.STOPPING
+
+        if (previousState == DiscoveryState.STARTED || previousState == DiscoveryState.STARTING) {
             try {
                 nsdManager.stopServiceDiscovery(discoveryListener)
             } catch (e: Exception) {
@@ -57,17 +79,11 @@ class AdbMdns(
             }
             serviceInfoCallbacks.clear()
         }
-
         serviceInfoList.clear()
         notifyListener()
-    }
 
-    private fun onDiscoveryStart() {
-        registered = true
-    }
-
-    private fun onDiscoverStop() {
-        registered = false
+        Timber.d("ServiceType: $serviceTypeFormatted discovery stopped in stop()")
+        _state.value = DiscoveryState.STOPPED
     }
 
     @Suppress("DEPRECATION")
@@ -102,7 +118,10 @@ class AdbMdns(
     }
 
     private fun onServiceResolved(serviceInfo: NsdServiceInfo) {
-        if (!running) return
+        if (_state.value == DiscoveryState.STOPPED || _state.value == DiscoveryState.STOPPING) {
+            Timber.w("ServiceType: $serviceTypeFormatted serviceResolved but discovery is stopped")
+            return
+        }
         val index = serviceInfoList.indexOfFirst { it.serviceName == serviceInfo.serviceName }
         if (index != -1) {
             serviceInfoList[index] = serviceInfo
@@ -118,19 +137,23 @@ class AdbMdns(
 
     private class DiscoveryListener(private val adbMdns: AdbMdns) : NsdManager.DiscoveryListener {
         override fun onDiscoveryStarted(serviceType: String) {
-            adbMdns.onDiscoveryStart()
+            Timber.d("ServiceType: $serviceType discoveryStarted in DiscoveryListener")
+            adbMdns._state.value = DiscoveryState.STARTED
         }
 
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-            Timber.d("ServiceType: $serviceType startDiscoveryFailed errorCode: $errorCode")
+            Timber.w("ServiceType: $serviceType startDiscoveryFailed errorCode: $errorCode in DiscoveryListener")
+            adbMdns._state.value = DiscoveryState.STOPPED
         }
 
         override fun onDiscoveryStopped(serviceType: String) {
-            adbMdns.onDiscoverStop()
+            Timber.d("ServiceType: $serviceType discoveryStopped in DiscoveryListener")
+            adbMdns._state.value = DiscoveryState.STOPPED
         }
 
         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
-            Timber.d("ServiceType: $serviceType stopDiscoveryFailed errorCode: $errorCode")
+            Timber.w("ServiceType: $serviceType stopDiscoveryFailed errorCode: $errorCode in DiscoveryListener")
+            adbMdns._state.value = DiscoveryState.STOPPED
         }
 
         override fun onServiceFound(serviceInfo: NsdServiceInfo) {
@@ -169,6 +192,13 @@ class AdbMdns(
         override fun onServiceInfoCallbackUnregistered() {
             Timber.d("ServiceInfoCallback unregistered for ${serviceInfo.serviceName}")
         }
+    }
+
+    enum class DiscoveryState {
+        STOPPED,
+        STARTING,
+        STARTED,
+        STOPPING
     }
 
     companion object {
