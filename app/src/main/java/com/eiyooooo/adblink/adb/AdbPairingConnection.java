@@ -30,7 +30,7 @@ import javax.net.ssl.SSLSocket;
 
 import timber.log.Timber;
 
-public final class PairingConnectionCtx implements Closeable {
+final class AdbPairingConnection implements Closeable {
 
     public static final String EXPORTED_KEY_LABEL = "adb-label\u0000";
     public static final int EXPORT_KEY_SIZE = 64;
@@ -56,16 +56,16 @@ public final class PairingConnectionCtx implements Closeable {
 
     private DataInputStream mInputStream;
     private DataOutputStream mOutputStream;
-    private PairingAuthCtx mPairingAuthCtx;
+    private AdbPairingAuth mAdbPairingAuth;
     private State mState = State.Ready;
 
-    PairingConnectionCtx(@NonNull String host, int port, @NonNull byte[] pswd, @NonNull AdbKeyPair adbKeyPair, @NonNull String deviceName)
+    AdbPairingConnection(@NonNull String host, int port, @NonNull byte[] pswd, @NonNull AdbKeyPair adbKeyPair)
             throws NoSuchAlgorithmException, KeyManagementException, InvalidKeyException {
         this.mHost = Objects.requireNonNull(host);
         this.mPort = port;
         this.mPswd = Objects.requireNonNull(pswd);
         this.mPeerInfo = new PeerInfo(PeerInfo.ADB_RSA_PUB_KEY, AndroidPubkey.encodeWithName((RSAPublicKey)
-                adbKeyPair.getPublicKey(), Objects.requireNonNull(deviceName)));
+                adbKeyPair.getPublicKey(), adbKeyPair.getKeyName()));
         this.mSslContext = SslUtil.getSslContext(adbKeyPair);
     }
 
@@ -131,11 +131,11 @@ public final class PairingConnectionCtx implements Closeable {
         System.arraycopy(mPswd, 0, passwordBytes, 0, mPswd.length);
         System.arraycopy(keyMaterial, 0, passwordBytes, mPswd.length, keyMaterial.length);
 
-        PairingAuthCtx pairingAuthCtx = PairingAuthCtx.createAlice(passwordBytes);
-        if (pairingAuthCtx == null) {
-            throw new IOException("Unable to create PairingAuthCtx.");
+        AdbPairingAuth adbPairingAuth = AdbPairingAuth.createAlice(passwordBytes);
+        if (adbPairingAuth == null) {
+            throw new IOException("Unable to create AdbPairingAuth.");
         }
-        this.mPairingAuthCtx = pairingAuthCtx;
+        this.mAdbPairingAuth = adbPairingAuth;
     }
 
     @SuppressLint("PrivateApi") // Conscrypt is a stable private API
@@ -194,7 +194,7 @@ public final class PairingConnectionCtx implements Closeable {
     }
 
     private boolean doExchangeMsgs() throws IOException {
-        byte[] msg = mPairingAuthCtx.getMsg();
+        byte[] msg = mAdbPairingAuth.getMsg();
 
         PairingPacketHeader ourHeader = createHeader(PairingPacketHeader.SPAKE2_MSG, msg.length);
         // Write our SPAKE2 msg
@@ -209,7 +209,7 @@ public final class PairingConnectionCtx implements Closeable {
         mInputStream.readFully(theirMsg);
 
         try {
-            return mPairingAuthCtx.initCipher(theirMsg);
+            return mAdbPairingAuth.initCipher(theirMsg);
         } catch (Exception e) {
             Timber.e("Unable to initialize pairing cipher");
             //noinspection UnnecessaryInitCause
@@ -221,7 +221,7 @@ public final class PairingConnectionCtx implements Closeable {
         // Encrypt PeerInfo
         ByteBuffer buffer = ByteBuffer.allocate(PeerInfo.MAX_PEER_INFO_SIZE).order(ByteOrder.BIG_ENDIAN);
         mPeerInfo.writeTo(buffer);
-        byte[] outBuffer = mPairingAuthCtx.encrypt(buffer.array());
+        byte[] outBuffer = mAdbPairingAuth.encrypt(buffer.array());
         if (outBuffer == null) {
             Timber.e("Failed to encrypt peer info");
             return false;
@@ -241,7 +241,7 @@ public final class PairingConnectionCtx implements Closeable {
         mInputStream.readFully(theirMsg);
 
         // Try to decrypt the certificate
-        byte[] decryptedMsg = mPairingAuthCtx.decrypt(theirMsg);
+        byte[] decryptedMsg = mAdbPairingAuth.decrypt(theirMsg);
         if (decryptedMsg == null) {
             Timber.e("Unsupported payload while decrypting peer info.");
             return false;
@@ -270,7 +270,7 @@ public final class PairingConnectionCtx implements Closeable {
         } catch (IOException ignore) {
         }
         if (mState != State.Ready) {
-            mPairingAuthCtx.destroy();
+            mAdbPairingAuth.destroy();
         }
     }
 

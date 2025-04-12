@@ -26,7 +26,7 @@ import javax.security.auth.Destroyable;
 import io.github.muntashirakon.crypto.spake2.Spake2Context;
 import io.github.muntashirakon.crypto.spake2.Spake2Role;
 
-class PairingAuthCtx implements Destroyable {
+class AdbPairingAuth implements Destroyable {
     // The following values are taken from the following source and are subjected to change
     // https://github.com/aosp-mirror/platform_system_core/blob/android-11.0.0_r1/adb/pairing_auth/pairing_auth.cpp
     private static final byte[] CLIENT_NAME = "adb pair client\u0000".getBytes(StandardCharsets.UTF_8);
@@ -46,10 +46,10 @@ class PairingAuthCtx implements Destroyable {
     private boolean mIsDestroyed = false;
 
     @Nullable
-    public static PairingAuthCtx createAlice(byte[] password) {
+    public static AdbPairingAuth createAlice(byte[] password) {
         Spake2Context spake25519 = new Spake2Context(Spake2Role.Alice, CLIENT_NAME, SERVER_NAME);
         try {
-            return new PairingAuthCtx(spake25519, password);
+            return new AdbPairingAuth(spake25519, password);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return null;
         }
@@ -57,16 +57,16 @@ class PairingAuthCtx implements Destroyable {
 
     @VisibleForTesting
     @Nullable
-    public static PairingAuthCtx createBob(byte[] password) {
+    public static AdbPairingAuth createBob(byte[] password) {
         Spake2Context spake25519 = new Spake2Context(Spake2Role.Bob, SERVER_NAME, CLIENT_NAME);
         try {
-            return new PairingAuthCtx(spake25519, password);
+            return new AdbPairingAuth(spake25519, password);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return null;
         }
     }
 
-    private PairingAuthCtx(Spake2Context spake25519, byte[] password)
+    private AdbPairingAuth(Spake2Context spake25519, byte[] password)
             throws IllegalArgumentException, IllegalStateException {
         mSpake2Ctx = spake25519;
         mMsg = mSpake2Ctx.generateMessage(password);

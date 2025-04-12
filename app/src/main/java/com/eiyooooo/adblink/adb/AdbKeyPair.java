@@ -19,8 +19,7 @@ import android.sun.security.x509.X509CertImpl;
 import android.sun.security.x509.X509CertInfo;
 
 import androidx.annotation.NonNull;
-
-import com.eiyooooo.adblink.MyApplicationKt;
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,26 +39,10 @@ import java.util.Random;
 
 import timber.log.Timber;
 
-class AdbKeyPair {
+public class AdbKeyPair {
     private final PrivateKey privateKey;
     private final Certificate certificate;
     private final String keyName;
-
-    private static AdbKeyPair INSTANCE;
-
-    public static AdbKeyPair getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = loadKeyPair();
-            if (INSTANCE == null) {
-                try {
-                    INSTANCE = createAdbKeyPair();
-                } catch (Exception e) {
-                    Timber.w(e, "Failed to create ADB key pair");
-                }
-            }
-        }
-        return INSTANCE;
-    }
 
     private AdbKeyPair(PrivateKey privateKey, Certificate certificate, String keyName) {
         this.privateKey = privateKey;
@@ -67,7 +50,7 @@ class AdbKeyPair {
         this.keyName = keyName;
     }
 
-    public PrivateKey getPrivateKey() {
+    PrivateKey getPrivateKey() {
         return privateKey;
     }
 
@@ -83,10 +66,11 @@ class AdbKeyPair {
         return keyName;
     }
 
-    private static AdbKeyPair loadKeyPair() {
+    @Nullable
+    static AdbKeyPair loadKeyPair(File filesDir) {
         PrivateKey mPrivateKey = null;
         try {
-            File privateKeyFile = new File(MyApplicationKt.getApplication().getFilesDir(), "private.key");
+            File privateKeyFile = new File(filesDir, "private.key");
             if (privateKeyFile.exists()) {
                 byte[] privateKeyBytes = new byte[(int) privateKeyFile.length()];
                 try (FileInputStream is = new FileInputStream(privateKeyFile)) {
@@ -101,7 +85,7 @@ class AdbKeyPair {
 
         Certificate mCertificate = null;
         try {
-            File certFile = new File(MyApplicationKt.getApplication().getFilesDir(), "cert.pem");
+            File certFile = new File(filesDir, "cert.pem");
             if (certFile.exists()) {
                 try (FileInputStream cert = new FileInputStream(certFile)) {
                     mCertificate = CertificateFactory.getInstance("X.509").generateCertificate(cert);
@@ -118,7 +102,7 @@ class AdbKeyPair {
         }
     }
 
-    private static AdbKeyPair createAdbKeyPair() throws Exception {
+    static AdbKeyPair createAdbKeyPair(File filesDir) throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048, SecureRandom.getInstance("SHA1PRNG"));
         java.security.KeyPair generateKeyPair = keyPairGenerator.generateKeyPair();
@@ -152,11 +136,11 @@ class AdbKeyPair {
         X509CertImpl x509CertImpl = new X509CertImpl(x509CertInfo);
         x509CertImpl.sign(privateKey, algorithmName);
 
-        File privateKeyFile = new File(MyApplicationKt.getApplication().getFilesDir(), "private.key");
+        File privateKeyFile = new File(filesDir, "private.key");
         try (FileOutputStream os = new FileOutputStream(privateKeyFile)) {
             os.write(privateKey.getEncoded());
         }
-        File certFile = new File(MyApplicationKt.getApplication().getFilesDir(), "cert.pem");
+        File certFile = new File(filesDir, "cert.pem");
         BASE64Encoder encoder = new BASE64Encoder();
         try (FileOutputStream os = new FileOutputStream(certFile)) {
             os.write(X509Factory.BEGIN_CERT.getBytes(StandardCharsets.UTF_8));
@@ -169,25 +153,16 @@ class AdbKeyPair {
         return new AdbKeyPair(privateKey, x509CertImpl, keyName);
     }
 
-    public static void recreateAdbKeyPair() {
-        try {
-            INSTANCE.getPrivateKey().destroy();
-        } catch (Exception e) {
-            Timber.w(e, "Failed to destroy private key");
-        }
-        File privateKeyFile = new File(MyApplicationKt.getApplication().getFilesDir(), "private.key");
+    static AdbKeyPair recreateAdbKeyPair(File filesDir) throws Exception {
+        File privateKeyFile = new File(filesDir, "private.key");
         if (privateKeyFile.exists()) {
             boolean ignored = privateKeyFile.delete();
         }
-        File certFile = new File(MyApplicationKt.getApplication().getFilesDir(), "cert.pem");
+        File certFile = new File(filesDir, "cert.pem");
         if (certFile.exists()) {
             boolean ignored = certFile.delete();
         }
-        try {
-            INSTANCE = createAdbKeyPair();
-        } catch (Exception e) {
-            Timber.w(e, "Failed to create ADB key pair");
-        }
+        return createAdbKeyPair(filesDir);
     }
 
     private static String getKeyName(@NonNull PrivateKey privateKey) {
