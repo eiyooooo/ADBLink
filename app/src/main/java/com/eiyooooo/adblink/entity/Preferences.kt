@@ -19,7 +19,7 @@ object Preferences {
         this.sharedPreferences = sharedPreferences
         this.flowSharedPreferences = FlowSharedPreferences(sharedPreferences)
 
-        if (!sharedPreferences.contains("others.enable_log")) {
+        if (!sharedPreferences.contains("enableLog")) {
             enableLog = BuildConfig.DEBUG
         }
     }
