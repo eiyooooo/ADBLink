@@ -9,7 +9,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StreamCorruptedException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -347,19 +346,20 @@ final class AdbProtocol {
          * <p>
          * <b>Note:</b> If data is corrupted, the connection has to be closed immediately to avoid inconsistencies.
          *
-         * @param in InputStream object to read data from
+         * @param channel The channel to read from
+         * @param maxData Maximum data size to read
          * @return An AdbMessage object represented the message read
          * @throws IOException              If the stream fails while reading.
          * @throws StreamCorruptedException If data is corrupted.
          */
         @NonNull
-        public static Message parse(@NonNull InputStream in, int maxData) throws IOException {
+        public static Message parse(@NonNull AdbChannel channel, int maxData) throws IOException {
             ByteBuffer header = ByteBuffer.allocate(ADB_HEADER_LENGTH).order(ByteOrder.LITTLE_ENDIAN);
 
             // Read header
             int dataRead = 0;
             do {
-                int bytesRead = in.read(header.array(), dataRead, ADB_HEADER_LENGTH - dataRead);
+                int bytesRead = channel.read(header.array(), dataRead, ADB_HEADER_LENGTH - dataRead);
                 if (bytesRead < 0) {
                     throw new IOException("Stream closed");
                 } else dataRead += bytesRead;
@@ -389,7 +389,7 @@ final class AdbProtocol {
             msg.payload = new byte[msg.dataLength];
             dataRead = 0;
             do {
-                int bytesRead = in.read(msg.payload, dataRead, msg.dataLength - dataRead);
+                int bytesRead = channel.read(msg.payload, dataRead, msg.dataLength - dataRead);
                 if (bytesRead < 0) {
                     throw new IOException("Stream closed");
                 } else dataRead += bytesRead;

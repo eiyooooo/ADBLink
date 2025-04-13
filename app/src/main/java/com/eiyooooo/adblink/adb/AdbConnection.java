@@ -2,25 +2,18 @@
 
 package com.eiyooooo.adblink.adb;
 
-import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
-import java.net.Socket;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
 
 import timber.log.Timber;
 
@@ -30,48 +23,15 @@ import timber.log.Timber;
 // Copyright 2013 Cameron Gutman
 public class AdbConnection implements Closeable {
     /**
-     * The underlying socket that this class uses to communicate with the target device.
+     * The underlying channel to the ADB daemon.
      */
     @NonNull
-    private final Socket mSocket;
-
-    @NonNull
-    private final String mHost;
-
-    private final int mPort;
+    private final AdbChannel mChannel;
 
     /**
      * The last allocated local stream ID. The ID chosen for the next stream will be this value + 1.
      */
     private int mLastLocalId;
-
-    /**
-     * The input stream that this class uses to read from the socket.
-     */
-    @GuardedBy("lock")
-    @NonNull
-    private final InputStream mPlainInputStream;
-
-    /**
-     * The output stream that this class uses to read from the socket.
-     */
-    @GuardedBy("lock")
-    @NonNull
-    private final OutputStream mPlainOutputStream;
-
-    /**
-     * The input stream that this class uses to read from the TLS socket.
-     */
-    @GuardedBy("lock")
-    @Nullable
-    private volatile InputStream mTlsInputStream;
-
-    /**
-     * The output stream that this class uses to read from the TLS socket.
-     */
-    @GuardedBy("lock")
-    @Nullable
-    private volatile OutputStream mTlsOutputStream;
 
     /**
      * The backend thread that handles responding to ADB packets.
@@ -127,59 +87,30 @@ public class AdbConnection implements Closeable {
     @NonNull
     private final ConcurrentHashMap<Integer, AdbStream> mOpenedStreams;
 
-    private volatile boolean mIsTls = false;
-
-    @GuardedBy("lock")
-    @NonNull
-    private final Object mLock = new Object();
-
     /**
-     * Creates a AdbConnection object associated with the socket and crypto object specified.
+     * Creates a AdbConnection object that connects to the specified host and port.
      *
      * @return A new AdbConnection object.
-     * @throws IOException If there is a socket error
+     * @throws IOException If there is a channel error
      */
     @WorkerThread
     @NonNull
     static AdbConnection create(@NonNull String host, int port, @NonNull AdbKeyPair adbKeyPair) throws IOException {
-        return new AdbConnection(host, port, adbKeyPair);
+        TcpChannel channel = new TcpChannel(host, port);
+        return new AdbConnection(channel, adbKeyPair);
     }
 
     /**
      * Internal constructor to initialize some internal state
      */
     @WorkerThread
-    private AdbConnection(@NonNull String host, int port, @NonNull AdbKeyPair adbKeyPair) throws IOException {
-        this.mHost = Objects.requireNonNull(host);
-        this.mPort = port;
+    private AdbConnection(@NonNull AdbChannel channel, @NonNull AdbKeyPair adbKeyPair) {
+        this.mChannel = Objects.requireNonNull(channel);
         this.mAdbKeyPair = Objects.requireNonNull(adbKeyPair);
-        try {
-            this.mSocket = new Socket(host, port);
-        } catch (Throwable th) {
-            //noinspection UnnecessaryInitCause
-            throw (IOException) new IOException().initCause(th);
-        }
-        this.mPlainInputStream = mSocket.getInputStream();
-        this.mPlainOutputStream = mSocket.getOutputStream();
-
-        // Disable Nagle because we're sending tiny packets
-        mSocket.setTcpNoDelay(true);
 
         this.mOpenedStreams = new ConcurrentHashMap<>();
         this.mLastLocalId = 0;
         this.mConnectionThread = createConnectionThread();
-    }
-
-    @GuardedBy("lock")
-    @NonNull
-    private InputStream getInputStream() {
-        return mIsTls ? Objects.requireNonNull(mTlsInputStream) : mPlainInputStream;
-    }
-
-    @GuardedBy("lock")
-    @NonNull
-    private OutputStream getOutputStream() {
-        return mIsTls ? Objects.requireNonNull(mTlsOutputStream) : mPlainOutputStream;
     }
 
     /**
@@ -193,8 +124,8 @@ public class AdbConnection implements Closeable {
             loop:
             while (!mConnectionThread.isInterrupted()) {
                 try {
-                    // Read and parse a message off the socket's input stream
-                    AdbProtocol.Message msg = AdbProtocol.Message.parse(getInputStream(), mMaxData);
+                    // Read and parse a message over the channel
+                    AdbProtocol.Message msg = AdbProtocol.Message.parse(mChannel, mMaxData);
 
                     switch (msg.command) {
                         // Stream-oriented commands
@@ -237,20 +168,13 @@ public class AdbConnection implements Closeable {
                         case AdbProtocol.A_STLS: {
                             sendPacket(AdbProtocol.generateStls(mProtocolVersion));
 
-                            SSLContext sslContext = SslUtil.getSslContext(mAdbKeyPair);
-                            SSLSocket tlsSocket = (SSLSocket) sslContext.getSocketFactory()
-                                    .createSocket(mSocket, mHost, mPort, true);
-                            tlsSocket.startHandshake();
-
-                            synchronized (AdbConnection.this) {
-                                mTlsInputStream = tlsSocket.getInputStream();
-                                mTlsOutputStream = tlsSocket.getOutputStream();
-                                mIsTls = true;
+                            if (mChannel instanceof TcpChannel) {
+                                ((TcpChannel) mChannel).upgradeTls(mAdbKeyPair);
                             }
                             break;
                         }
                         case AdbProtocol.A_AUTH: {
-                            if (mIsTls) {
+                            if (mChannel instanceof TcpChannel && ((TcpChannel) mChannel).mIsTls) {
                                 break;
                             }
                             if (msg.arg0 != AdbProtocol.ADB_AUTH_TOKEN) {
@@ -348,10 +272,10 @@ public class AdbConnection implements Closeable {
     }
 
     /**
-     * Whether the underlying socket is connected to an ADB daemon and is not in a closed state.
+     * Whether the underlying channel is connected to an ADB daemon and is not in a closed state.
      */
     public boolean isConnected() {
-        return !mSocket.isClosed() && mSocket.isConnected();
+        return mChannel.isConnected();
     }
 
     /**
@@ -359,7 +283,7 @@ public class AdbConnection implements Closeable {
      * fails.
      *
      * @return {@code true} if the connection was established, or {@code false} if the connection timed out
-     * @throws IOException                 If the socket fails while connecting
+     * @throws IOException                 If the channel fails while connecting
      * @throws InterruptedException        If timeout has reached
      * @throws AdbPairingRequiredException If ADB lacks pairing
      */
@@ -375,7 +299,7 @@ public class AdbConnection implements Closeable {
      * @param throwOnUnauthorised Whether to throw an {@link AdbAuthenticationFailedException}
      *                            if the peer rejects out first authentication attempt
      * @return {@code true} if the connection was established, or {@code false} if the connection timed out
-     * @throws IOException                      If the socket fails while connecting
+     * @throws IOException                      If the channel fails while connecting
      * @throws InterruptedException             If timeout has reached
      * @throws AdbAuthenticationFailedException If {@code throwOnUnauthorised} is {@code true} and the peer rejects the
      *                                          first authentication attempt, which indicates that the peer has not
@@ -512,14 +436,14 @@ public class AdbConnection implements Closeable {
     }
 
     /**
-     * This routine closes the Adb connection and underlying socket
+     * This routine closes the Adb connection and underlying channel
      *
-     * @throws IOException if the socket fails to close
+     * @throws IOException if the channel fails to close
      */
     @Override
     public void close() throws IOException {
-        // Closing the socket will kick the connection thread
-        mSocket.close();
+        // Closing the channel will kick the connection thread
+        mChannel.close();
 
         // Wait for the connection thread to die
         mConnectionThread.interrupt();
@@ -530,16 +454,11 @@ public class AdbConnection implements Closeable {
     }
 
     void sendPacket(byte[] packet) throws IOException {
-        synchronized (mLock) {
-            OutputStream os = getOutputStream();
-            os.write(packet);
-            os.flush();
-        }
+        mChannel.write(packet);
+        mChannel.flush();
     }
 
     void flushPacket() throws IOException {
-        synchronized (mLock) {
-            getOutputStream().flush();
-        }
+        mChannel.flush();
     }
 }
