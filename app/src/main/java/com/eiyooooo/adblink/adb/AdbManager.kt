@@ -98,40 +98,37 @@ object AdbManager {
 
     private fun pairWithDiscoveredService(infos: List<NsdServiceInfo>) {
         val currentQrPairInfo = qrPairInfo ?: return
-        adbScope.launch {
-            for (info in infos) {
-                if (info.serviceName == currentQrPairInfo.first) {
-                    var targetAddress: String? = null
-                    val pairingCode = currentQrPairInfo.second
+        infos.firstOrNull { it.serviceName == currentQrPairInfo.first }?.let { info ->
+            adbScope.launch {
+                var targetAddress: String? = null
+                val pairingCode = currentQrPairInfo.second
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                        || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                                && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 7)
-                    ) {
-                        for (address in info.hostAddresses) {
-                            if (address.isReachableLocallySuspend()) {
-                                targetAddress = address.hostAddress ?: continue
-                                break
-                            }
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        val host = info.host
-                        if (host != null && host.isReachableLocallySuspend()) {
-                            targetAddress = host.hostAddress
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                    || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                            && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 7)
+                ) {
+                    for (address in info.hostAddresses) {
+                        if (address.isReachableLocallySuspend()) {
+                            targetAddress = address.hostAddress ?: continue
+                            break
                         }
                     }
-
-                    targetAddress?.let {
-                        Timber.d("Trying to pair with device $it:${info.port} via QR code")
-                        val result = withContext(Dispatchers.IO) {
-                            pair(it, info.port, pairingCode)
-                        }
-                        if (result) {
-                            qrPairInfo = null
-                        }
+                } else {
+                    @Suppress("DEPRECATION")
+                    val host = info.host
+                    if (host != null && host.isReachableLocallySuspend()) {
+                        targetAddress = host.hostAddress
                     }
-                    break
+                }
+
+                targetAddress?.let {
+                    Timber.d("Trying to pair with device $it:${info.port} via QR code")
+                    val result = withContext(Dispatchers.IO) {
+                        pair(it, info.port, pairingCode)
+                    }
+                    if (result) {
+                        qrPairInfo = null
+                    }
                 }
             }
         }
