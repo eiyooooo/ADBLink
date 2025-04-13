@@ -3,6 +3,10 @@
     <string name="app_name">ADBLink</string>
     <string name="github_message">If you like this APP\nYou can left a star on the GitHub repository🙇</string>
 
+    <string name="init_failed_title">Initialization Failed</string>
+    <string name="init_failed_message">ADB module initialization failed, please export the log for troubleshooting or manually restart the application to retry.</string>
+    <string name="close_app">Close APP</string>
+
     <string name="back">Back</string>
     <string name="home">Home</string>
     <string name="manage">Manage</string>

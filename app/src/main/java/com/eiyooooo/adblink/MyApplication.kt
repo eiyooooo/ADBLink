@@ -2,6 +2,7 @@ package com.eiyooooo.adblink
 
 import android.app.Application
 import android.content.Context
+import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.util.FLog
 import com.eiyooooo.adblink.util.LanguageUtil
@@ -23,8 +24,13 @@ class MyApplication : Application() {
         appStartTime = Date()
 
         FLog.init(this)
-        if (Preferences.enableLog) FLog.start()
-        Timber.i("App started at: $appStartTime")
+        FLog.start()
+        if (AdbManager.init()) {
+            if (!Preferences.enableLog) {
+                FLog.stop()
+            }
+            Timber.i("App started at: $appStartTime, AdbManager initialized")
+        }
     }
 
     override fun attachBaseContext(base: Context) {

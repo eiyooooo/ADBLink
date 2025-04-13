@@ -1,7 +1,11 @@
 package com.eiyooooo.adblink.util
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.net.Inet4Address
 import java.net.Inet6Address
+import java.net.InetAddress
 import java.net.NetworkInterface
 
 fun getIp(): Pair<ArrayList<String>, ArrayList<String>> {
@@ -27,4 +31,14 @@ fun getIp(): Pair<ArrayList<String>, ArrayList<String>> {
     } catch (_: Exception) {
     }
     return ipv4Addresses to ipv6Addresses
+}
+
+suspend fun InetAddress.isReachableLocallySuspend(timeout: Int = 2000): Boolean = withContext(Dispatchers.IO) {
+    try {
+        if (!isSiteLocalAddress) return@withContext false
+        isReachable(timeout)
+    } catch (e: Exception) {
+        Timber.d(e, "Failed to check: $hostAddress reachability")
+        false
+    }
 }
