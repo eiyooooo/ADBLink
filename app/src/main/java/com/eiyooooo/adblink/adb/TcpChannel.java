@@ -26,27 +26,23 @@ public class TcpChannel implements AdbChannel {
 
     private final int mPort;
 
-    @GuardedBy("mLock")
     @NonNull
     private final InputStream mPlainInputStream;
 
-    @GuardedBy("mLock")
+    @Nullable
+    private volatile InputStream mTlsInputStream = null;
+
+    @GuardedBy("mWriteLock")
     @NonNull
     private final OutputStream mPlainOutputStream;
 
-    @GuardedBy("mLock")
+    @GuardedBy("mWriteLock")
     @Nullable
-    private volatile InputStream mTlsInputStream;
+    private volatile OutputStream mTlsOutputStream = null;
 
-    @GuardedBy("mLock")
-    @Nullable
-    private volatile OutputStream mTlsOutputStream;
-
-    volatile boolean mIsTls = false;
-
-    @GuardedBy("mLock")
+    @GuardedBy("mWriteLock")
     @NonNull
-    private final Object mLock = new Object();
+    private final Object mWriteLock = new Object();
 
     @WorkerThread
     public TcpChannel(@NonNull String host, int port) throws IOException {
@@ -58,16 +54,15 @@ public class TcpChannel implements AdbChannel {
         mSocket.setTcpNoDelay(true);
     }
 
-    @GuardedBy("mLock")
     @NonNull
     private InputStream getInputStream() {
-        return mIsTls ? Objects.requireNonNull(mTlsInputStream) : mPlainInputStream;
+        return mTlsInputStream != null ? Objects.requireNonNull(mTlsInputStream) : mPlainInputStream;
     }
 
-    @GuardedBy("mLock")
+    @GuardedBy("mWriteLock")
     @NonNull
     private OutputStream getOutputStream() {
-        return mIsTls ? Objects.requireNonNull(mTlsOutputStream) : mPlainOutputStream;
+        return mTlsOutputStream != null ? Objects.requireNonNull(mTlsOutputStream) : mPlainOutputStream;
     }
 
     public void upgradeTls(@NonNull AdbKeyPair adbKeyPair) throws Exception {
@@ -75,33 +70,33 @@ public class TcpChannel implements AdbChannel {
         SSLSocket tlsSocket = (SSLSocket) sslContext.getSocketFactory()
                 .createSocket(mSocket, mHost, mPort, true);
         tlsSocket.startHandshake();
-
-        synchronized (mLock) {
+        synchronized (mWriteLock) {
             mTlsInputStream = tlsSocket.getInputStream();
             mTlsOutputStream = tlsSocket.getOutputStream();
-            mIsTls = true;
         }
+    }
+
+    public boolean isTls() {
+        return mTlsInputStream != null && mTlsOutputStream != null;
     }
 
     @Override
     public void write(byte[] data) throws IOException {
-        synchronized (mLock) {
+        synchronized (mWriteLock) {
             getOutputStream().write(data);
         }
     }
 
     @Override
     public void flush() throws IOException {
-        synchronized (mLock) {
+        synchronized (mWriteLock) {
             getOutputStream().flush();
         }
     }
 
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
-        synchronized (mLock) {
-            return getInputStream().read(buffer, offset, length);
-        }
+        return getInputStream().read(buffer, offset, length);
     }
 
     @Override

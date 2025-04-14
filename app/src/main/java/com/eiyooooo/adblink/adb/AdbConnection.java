@@ -174,7 +174,7 @@ public class AdbConnection implements Closeable {
                             break;
                         }
                         case AdbProtocol.A_AUTH: {
-                            if (mChannel instanceof TcpChannel && ((TcpChannel) mChannel).mIsTls) {
+                            if (mChannel instanceof TcpChannel && ((TcpChannel) mChannel).isTls()) {
                                 break;
                             }
                             if (msg.arg0 != AdbProtocol.ADB_AUTH_TOKEN) {
