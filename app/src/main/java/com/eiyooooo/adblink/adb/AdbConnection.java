@@ -2,6 +2,9 @@
 
 package com.eiyooooo.adblink.adb;
 
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
@@ -97,6 +100,19 @@ public class AdbConnection implements Closeable {
     @NonNull
     static AdbConnection create(@NonNull String host, int port, @NonNull AdbKeyPair adbKeyPair) throws IOException {
         TcpChannel channel = new TcpChannel(host, port);
+        return new AdbConnection(channel, adbKeyPair);
+    }
+
+    /**
+     * Creates a AdbConnection object that connects to the specified USB device.
+     *
+     * @return A new AdbConnection object.
+     * @throws IOException If there is a channel error
+     */
+    @WorkerThread
+    @NonNull
+    static AdbConnection create(@NonNull UsbManager usbManager, @NonNull UsbDevice usbDevice, @NonNull AdbKeyPair adbKeyPair) throws IOException {
+        UsbChannel channel = new UsbChannel(usbManager, usbDevice);
         return new AdbConnection(channel, adbKeyPair);
     }
 
