@@ -437,6 +437,15 @@ public class AdbConnection implements Closeable {
         return true;
     }
 
+    void sendPacket(byte[] packet) throws IOException {
+        mChannel.write(packet);
+        mChannel.flush();
+    }
+
+    void flushPacket() throws IOException {
+        mChannel.flush();
+    }
+
     /**
      * This function terminates all I/O on streams associated with this ADB connection
      */
@@ -467,14 +476,5 @@ public class AdbConnection implements Closeable {
             mConnectionThread.join();
         } catch (InterruptedException ignored) {
         }
-    }
-
-    void sendPacket(byte[] packet) throws IOException {
-        mChannel.write(packet);
-        mChannel.flush();
-    }
-
-    void flushPacket() throws IOException {
-        mChannel.flush();
     }
 }
