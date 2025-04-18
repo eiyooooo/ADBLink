@@ -56,6 +56,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
 
     val showSnackbar: (String) -> Unit = { message ->
         coroutineScope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
             snackbarHostState.showSnackbar(message)
         }
     }
