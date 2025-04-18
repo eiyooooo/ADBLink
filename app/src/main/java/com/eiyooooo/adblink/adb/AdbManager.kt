@@ -66,6 +66,10 @@ object AdbManager {
         }
     }
 
+    fun getAdbKeyPairName(): String {
+        return adbKeyPair.keyName
+    }
+
     fun recreateAdbKeyPair() {
         adbKeyPair = AdbKeyPair.recreateAdbKeyPair(application.filesDir)
     }

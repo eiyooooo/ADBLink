@@ -43,7 +43,6 @@ fun SettingsScreen(
     val defaultParamsScrollState = rememberScrollState()
     val otherScrollState = rememberScrollState()
     val ipScrollState = rememberScrollState()
-    val adbKeyScrollState = rememberScrollState()
     val aboutScrollState = rememberScrollState()
 
     Surface(
@@ -161,7 +160,6 @@ fun SettingsScreen(
                                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> defaultParamsScrollState
                                         NavRoutes.SETTINGS_OTHER -> otherScrollState
                                         NavRoutes.SETTINGS_OTHER_IP -> ipScrollState
-                                        NavRoutes.SETTINGS_OTHER_ADB_KEY -> adbKeyScrollState
                                         NavRoutes.SETTINGS_ABOUT -> aboutScrollState
                                         else -> throw Exception("Unknown selected content")
                                     }
@@ -174,7 +172,6 @@ fun SettingsScreen(
                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> DefaultCastParametersSettingsContent()
                         NavRoutes.SETTINGS_OTHER -> OtherSettingsContent { selectedContent = it }
                         NavRoutes.SETTINGS_OTHER_IP -> IpContent(showSnackbar)
-                        NavRoutes.SETTINGS_OTHER_ADB_KEY -> AdbKeyContent()
                         NavRoutes.SETTINGS_OTHER_LOG -> LogContent(showSnackbar)
                         NavRoutes.SETTINGS_ABOUT -> AboutContent()
                     }

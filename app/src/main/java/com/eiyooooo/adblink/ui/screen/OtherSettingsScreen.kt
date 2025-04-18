@@ -14,18 +14,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.ui.component.SettingClickableItem
 import com.eiyooooo.adblink.ui.component.SettingDropdownItem
@@ -44,6 +51,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
     val setFullScreen by Preferences.setFullScreenFlow.collectAsState(initial = Preferences.setFullScreen)
     val enableLog by Preferences.enableLogFlow.collectAsState(initial = Preferences.enableLog)
     val appLanguage by Preferences.appLanguageFlow.collectAsState(initial = Preferences.appLanguage)
+
+    var showRegenerateKeyDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -211,15 +220,37 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingClickableItem(
-            title = context.getString(R.string.customize_adb_key),
+            title = context.getString(R.string.regenerate_adb_key),
+            description = context.getString(R.string.current_adb_key, AdbManager.getAdbKeyPairName()),
             onClick = {
-                navController?.run {
-                    navigate(NavRoutes.SETTINGS_OTHER_ADB_KEY)
-                } ?: run {
-                    onSelectedContentChange(NavRoutes.SETTINGS_OTHER_ADB_KEY)
-                }
+                showRegenerateKeyDialog = true
             },
             isLast = true
+        )
+    }
+
+    if (showRegenerateKeyDialog) {
+        AlertDialog(
+            onDismissRequest = { showRegenerateKeyDialog = false },
+            title = { Text(text = context.getString(R.string.regenerate_adb_key)) },
+            text = { Text(text = context.getString(R.string.regenerate_adb_key_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        AdbManager.recreateAdbKeyPair()
+                        showRegenerateKeyDialog = false
+                    }
+                ) {
+                    Text(context.getString(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showRegenerateKeyDialog = false }
+                ) {
+                    Text(context.getString(android.R.string.cancel))
+                }
+            }
         )
     }
 }

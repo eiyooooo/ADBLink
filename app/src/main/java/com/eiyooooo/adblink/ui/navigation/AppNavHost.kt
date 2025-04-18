@@ -15,9 +15,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.eiyooooo.adblink.ui.screen.AboutScreen
-import com.eiyooooo.adblink.ui.screen.AdbKeyScreen
-import com.eiyooooo.adblink.ui.screen.DefaultCastParametersSettingsScreen
 import com.eiyooooo.adblink.ui.screen.CastSettingsScreen
+import com.eiyooooo.adblink.ui.screen.DefaultCastParametersSettingsScreen
 import com.eiyooooo.adblink.ui.screen.HomeScreen
 import com.eiyooooo.adblink.ui.screen.IpScreen
 import com.eiyooooo.adblink.ui.screen.LogScreen
@@ -67,9 +66,6 @@ fun AppNavHost(
             }
             composable(route = NavRoutes.SETTINGS_OTHER_IP) {
                 IpScreen(showSnackbar)
-            }
-            composable(route = NavRoutes.SETTINGS_OTHER_ADB_KEY) {
-                AdbKeyScreen()
             }
             composable(route = NavRoutes.SETTINGS_ABOUT) {
                 AboutScreen()

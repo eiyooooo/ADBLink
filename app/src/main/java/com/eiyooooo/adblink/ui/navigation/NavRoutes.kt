@@ -12,7 +12,6 @@ object NavRoutes {
     const val SETTINGS_DEFAULT_CAST_PARAMETERS = "settings/default_cast_parameters"
     const val SETTINGS_OTHER = "settings/other"
     const val SETTINGS_OTHER_IP = "settings/other/ip"
-    const val SETTINGS_OTHER_ADB_KEY = "settings/other/adb_key"
     const val SETTINGS_OTHER_LOG = "settings/other/log"
     const val SETTINGS_ABOUT = "settings/about"
 }
@@ -28,7 +27,6 @@ fun getRouteTitle(route: String): String {
         NavRoutes.SETTINGS_OTHER -> stringResource(R.string.other)
         NavRoutes.SETTINGS_ABOUT -> stringResource(R.string.about)
         NavRoutes.SETTINGS_OTHER_IP -> stringResource(R.string.ip_address)
-        NavRoutes.SETTINGS_OTHER_ADB_KEY -> stringResource(R.string.adb_key)
         NavRoutes.SETTINGS_OTHER_LOG -> stringResource(R.string.log)
         else -> stringResource(R.string.app_name)
     }
