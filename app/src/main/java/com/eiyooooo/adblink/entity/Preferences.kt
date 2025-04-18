@@ -176,6 +176,13 @@ object Preferences {
     val enableUSBFlow
         get() = flowSharedPreferences.getBoolean("enableUSB", true).asFlow()
 
+    var enableDelayedAck
+        get() = sharedPreferences.get("enableDelayedAck", true)
+        set(value) = sharedPreferences.put("enableDelayedAck", value)
+
+    val enableDelayedAckFlow
+        get() = flowSharedPreferences.getBoolean("enableDelayedAck", true).asFlow()
+
     var setFullScreen
         get() = sharedPreferences.get("setFullScreen", true)
         set(value) = sharedPreferences.put("setFullScreen", value)

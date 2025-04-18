@@ -22,6 +22,7 @@ import java.util.Arrays;
  */
 // Copyright 2013 Cameron Gutman
 final class AdbProtocol {
+
     /**
      * The length of the ADB message header
      */
@@ -29,8 +30,8 @@ final class AdbProtocol {
 
     /**
      * SYNC(online, sequence, "")
-     *
-     * @deprecated Obsolete, no longer used. Never used on the client side.
+     * <p>
+     * Obsolete, no longer used. Never used on the client side.
      */
     public static final int A_SYNC = 0x434e5953;
 
@@ -43,6 +44,16 @@ final class AdbProtocol {
      * The payload sent with the CONNECT message.
      */
     public static final byte[] SYSTEM_IDENTITY_STRING_HOST = "host::\0".getBytes(StandardCharsets.UTF_8);
+
+    /**
+     * DELAYED_ACK is the delayed ACK feature. It is used to check if the target device supports delayed ACK.
+     */
+    public static final byte[] DELAYED_ACK_BYTES = "delayed_ack".getBytes(StandardCharsets.UTF_8);
+
+    /**
+     * The payload sent with the CONNECT message when delayed ACK is enabled.
+     */
+    public static final byte[] SYSTEM_IDENTITY_STRING_HOST_DELAYED_ACK = "host::features=delayed_ack".getBytes(StandardCharsets.UTF_8);
 
     /**
      * AUTH is the authentication message. It is part of the RSA public key authentication added in Android 4.2.2
@@ -84,6 +95,12 @@ final class AdbProtocol {
      * Maximum supported payload size
      */
     public static final int MAX_PAYLOAD = 1024 * 1024;
+
+    /**
+     * When delayed ack are supported, the initial number of unacknowledged bytes we're willing to
+     * receive on a socket before the other side should block.
+     */
+    public static final int INITIAL_DELAYED_ACK_BYTES = 32 * 1024 * 1024;
 
     /**
      * The original version of the ADB protocol
@@ -210,13 +227,17 @@ final class AdbProtocol {
     /**
      * Generates a CONNECT message for a given API.
      * <p>
-     * CONNECT(version, maxdata, "system-identity-string")
+     * CONNECT(version, maxData, "system-identity-string")
      *
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateConnect(int protocolVersion) {
-        return generateMessage(A_CNXN, A_VERSION, MAX_PAYLOAD, SYSTEM_IDENTITY_STRING_HOST, protocolVersion);
+    public static byte[] generateConnect(int protocolVersion, boolean enableDelayedAck) {
+        byte[] identity = SYSTEM_IDENTITY_STRING_HOST;
+        if (enableDelayedAck) {
+            identity = SYSTEM_IDENTITY_STRING_HOST_DELAYED_ACK;
+        }
+        return generateMessage(A_CNXN, A_VERSION, MAX_PAYLOAD, identity, protocolVersion);
     }
 
     /**
@@ -248,18 +269,22 @@ final class AdbProtocol {
     /**
      * Generates an OPEN stream message with the specified local ID and destination.
      * <p>
-     * OPEN(local-id, 0, "destination")
+     * OPEN(local-id, arg1, "destination")
      *
      * @param localId     A unique local ID identifying the stream
      * @param destination The destination of the stream on the target
      * @return Byte array containing the message
      */
     @NonNull
-    public static byte[] generateOpen(int localId, @NonNull String destination, int protocolVersion) {
+    public static byte[] generateOpen(int localId, @NonNull String destination, int protocolVersion, boolean enableDelayedAck) {
+        int arg1 = 0;
+        if (enableDelayedAck) {
+            arg1 = INITIAL_DELAYED_ACK_BYTES;
+        }
         ByteBuffer bbuf = ByteBuffer.allocate(destination.length() + 1);
         bbuf.put(destination.getBytes(StandardCharsets.UTF_8));
         bbuf.put((byte) 0);
-        return generateMessage(A_OPEN, localId, 0, bbuf.array(), protocolVersion);
+        return generateMessage(A_OPEN, localId, arg1, bbuf.array(), protocolVersion);
     }
 
     /**
@@ -298,13 +323,31 @@ final class AdbProtocol {
      * <p>
      * READY(local-id, remote-id, "")
      *
-     * @param localId  The unique local ID of the stream
-     * @param remoteId The unique remote ID of the stream
+     * @param localId         The unique local ID of the stream
+     * @param remoteId        The unique remote ID of the stream
+     * @param protocolVersion The protocol version
      * @return Byte array containing the message
      */
     @NonNull
     public static byte[] generateReady(int localId, int remoteId, int protocolVersion) {
         return generateMessage(A_OKAY, localId, remoteId, null, protocolVersion);
+    }
+
+    /**
+     * Generates an OKAY/READY message with the specified IDs.
+     * <p>
+     * READY(local-id, remote-id, "")
+     *
+     * @param localId         The unique local ID of the stream
+     * @param remoteId        The unique remote ID of the stream
+     * @param protocolVersion The protocol version
+     * @param ackBytes        The number of bytes to acknowledge
+     * @return Byte array containing the message
+     */
+    @NonNull
+    public static byte[] generateReady(int localId, int remoteId, int protocolVersion, int ackBytes) {
+        byte[] payload = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ackBytes).array();
+        return generateMessage(A_OKAY, localId, remoteId, payload, protocolVersion);
     }
 
     /**

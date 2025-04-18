@@ -28,17 +28,29 @@ public class AdbStream implements Closeable {
     /**
      * The remote ID of the stream
      */
-    private volatile int mRemoteId;
+    private volatile int mRemoteId = 0;
 
     /**
      * Indicates whether WRTE is currently allowed
      */
-    private final AtomicBoolean mWriteReady;
+    private final AtomicBoolean mWriteReady = new AtomicBoolean(false);
+
+    /**
+     * Lock for the write operation
+     */
+    private final Object mWriteLock = new Object();
+
+    /**
+     * For Delayed Ack: Tracks how many bytes the remote peer has acknowledged
+     * we can send. Null if delayed ack is disabled.
+     * Needs careful synchronization.
+     */
+    private volatile Long mAvailableSendBytes = null;
 
     /**
      * A queue of data from the target's WRTE packets
      */
-    private final Queue<byte[]> mReadQueue;
+    private final Queue<byte[]> mReadQueue = new ConcurrentLinkedQueue<>();
 
     /**
      * Store data received from the first WRTE packet in order to support buffering.
@@ -48,7 +60,7 @@ public class AdbStream implements Closeable {
     /**
      * Indicates whether the connection is closed already
      */
-    private volatile boolean mIsClosed;
+    private volatile boolean mIsClosed = false;
 
     /**
      * Whether the remote peer has closed but we still have unread data in the queue
@@ -66,16 +78,23 @@ public class AdbStream implements Closeable {
             throws IOException, InterruptedException, AdbPairingRequiredException {
         this.mAdbConnection = adbConnection;
         this.mLocalId = localId;
-        this.mReadQueue = new ConcurrentLinkedQueue<>();
         this.mReadBuffer = (ByteBuffer) ByteBuffer.allocate(adbConnection.getMaxData()).flip();
-        this.mWriteReady = new AtomicBoolean(false);
-        this.mIsClosed = false;
     }
 
+    /**
+     * Creates a new AdbInputStream object on this stream
+     *
+     * @return A new AdbInputStream object
+     */
     public AdbInputStream openInputStream() {
         return new AdbInputStream(this);
     }
 
+    /**
+     * Creates a new AdbOutputStream object on this stream
+     *
+     * @return A new AdbOutputStream object
+     */
     public AdbOutputStream openOutputStream() {
         return new AdbOutputStream(this);
     }
@@ -86,6 +105,9 @@ public class AdbStream implements Closeable {
      * @param payload Data inside the WRTE message
      */
     void addPayload(byte[] payload) {
+        if (payload == null || payload.length == 0) {
+            return;
+        }
         synchronized (mReadQueue) {
             mReadQueue.add(payload);
             mReadQueue.notifyAll();
@@ -96,47 +118,89 @@ public class AdbStream implements Closeable {
      * Called by the connection thread to send an OKAY packet, allowing the
      * other side to continue transmission.
      *
-     * @throws IOException If the connection fails while sending the packet
+     * @throws IOException                 If the connection fails while sending the packet
+     * @throws AdbPairingRequiredException If pairing is required
+     * @throws InterruptedException        If the thread is interrupted
      */
-    void sendReady() throws IOException {
+    void sendReady() throws IOException, AdbPairingRequiredException, InterruptedException {
         // Generate and send a OKAY packet
         mAdbConnection.sendPacket(AdbProtocol.generateReady(mLocalId, mRemoteId, mAdbConnection.getProtocolVersion()));
     }
 
     /**
-     * Called by the connection thread to update the remote ID for this stream
+     * Sends an OKAY/READY packet to the peer, indicating that the peer can
+     * continue sending data. This is used for delayed ACK mode.
+     *
+     * @param ackBytes Bytes consumed by the local reader since the last READY/ACK.
+     * @throws IOException                 If the connection fails while sending the packet
+     * @throws AdbPairingRequiredException If pairing is required
+     * @throws InterruptedException        If the thread is interrupted
+     */
+    void sendReady(int ackBytes) throws IOException, AdbPairingRequiredException, InterruptedException {
+        // Generate and send a OKAY packet
+        mAdbConnection.sendPacket(AdbProtocol.generateReady(mLocalId, mRemoteId, mAdbConnection.getProtocolVersion(), ackBytes));
+    }
+
+    /**
+     * Called by the connection thread to set the remote ID for this stream
      *
      * @param remoteId New remote ID
      */
-    void updateRemoteId(int remoteId) {
+    void setRemoteId(int remoteId) {
         this.mRemoteId = remoteId;
     }
 
     /**
-     * Called by the connection thread to indicate the stream is okay to send data.
+     * Returns the remote ID of this stream
+     *
+     * @return The remote ID of this stream
      */
-    void readyForWrite() {
-        mWriteReady.set(true);
+    int getRemoteId() {
+        return mRemoteId;
     }
 
     /**
-     * Called by the connection thread to notify that the stream was closed by the peer.
+     * Enables delayed ACK mode for this stream. This allows the peer to send
+     * data without waiting for an ACK.
      */
-    void notifyClose(boolean closedByPeer) {
-        // We don't call close() because it sends another CLSE
-        if (closedByPeer && !mReadQueue.isEmpty()) {
-            // The remote peer closed the stream, but we haven't finished reading the remaining data
-            mPendingClose = true;
-        } else {
-            mIsClosed = true;
+    void enableDelayedAck() {
+        if (mAvailableSendBytes == null) {
+            mAvailableSendBytes = 0L;
+        }
+    }
+
+    /**
+     * Processes acknowledgments received by the local socket.The method updates the
+     * available send bytes and notifies waiting threads when more data can be written.
+     *
+     * @param ackedBytes The number of bytes acknowledged, or null if not using payload acknowledgment
+     * @throws IOException If there's a mismatch between socket and payload acknowledgment modes
+     */
+    void processAck(Integer ackedBytes) throws IOException {
+        if (mIsClosed) return;
+
+        boolean socketHasAck = mAvailableSendBytes != null;
+        boolean payloadHasAck = ackedBytes != null;
+
+        if (socketHasAck != payloadHasAck) {
+            throw new IOException("delayed ack mismatch: socket = " + socketHasAck + ", payload = " + payloadHasAck);
         }
 
-        // Notify readers and writers
-        synchronized (this) {
-            notifyAll();
-        }
-        synchronized (mReadQueue) {
-            mReadQueue.notifyAll();
+        synchronized (mWriteLock) {
+            if (socketHasAck) {
+                long available = mAvailableSendBytes;
+                int ackValue = ackedBytes;
+
+                long newAvailable = available + ackValue;
+                mAvailableSendBytes = newAvailable;
+
+                if (newAvailable > 0) {
+                    mWriteLock.notifyAll();
+                }
+            } else {
+                mWriteReady.set(true);
+                mWriteLock.notifyAll();
+            }
         }
     }
 
@@ -185,6 +249,14 @@ public class AdbStream implements Closeable {
         return -1;
     }
 
+    /**
+     * Reads bytes from the read buffer.
+     *
+     * @param bytes  The byte array to read into
+     * @param offset The offset in the byte array to start reading into
+     * @param length The number of bytes to read
+     * @return The number of bytes read
+     */
     private int readBuffer(byte[] bytes, int offset, int length) {
         int count = 0;
         for (int i = offset; i < offset + length; ++i) {
@@ -203,21 +275,31 @@ public class AdbStream implements Closeable {
      * @throws IOException If the stream fails while sending data
      */
     public void write(byte[] bytes, int offset, int length) throws IOException {
-        synchronized (this) {
-            // Make sure we're ready for a WRTE
-            while (!mIsClosed && !mWriteReady.compareAndSet(true, false)) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    //noinspection UnnecessaryInitCause
-                    throw (IOException) new IOException().initCause(e);
+        synchronized (mWriteLock) {
+            if (mAvailableSendBytes != null) {
+                while (!mIsClosed && mAvailableSendBytes <= 0) {
+                    try {
+                        mWriteLock.wait();
+                    } catch (InterruptedException e) {
+                        //noinspection UnnecessaryInitCause
+                        throw (IOException) new IOException().initCause(e);
+                    }
+                }
+            } else {
+                while (!mIsClosed && !mWriteReady.compareAndSet(true, false)) {
+                    try {
+                        mWriteLock.wait();
+                    } catch (InterruptedException e) {
+                        //noinspection UnnecessaryInitCause
+                        throw (IOException) new IOException().initCause(e);
+                    }
                 }
             }
-
             if (mIsClosed) {
                 throw new IOException("Stream closed");
             }
         }
+
         // Split and send data as WRTE packet
         int maxData;
         try {
@@ -226,15 +308,47 @@ public class AdbStream implements Closeable {
             //noinspection UnnecessaryInitCause
             throw (IOException) new IOException().initCause(e);
         }
-        while (length != 0) {
-            if (length <= maxData) {
-                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, offset, length, mAdbConnection.getProtocolVersion()));
-                offset = offset + length;
-                length = 0;
-            } else { // if (length > maxData) {
-                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, offset, maxData, mAdbConnection.getProtocolVersion()));
-                offset = offset + maxData;
-                length = length - maxData;
+
+        int remainingLength = length;
+        int currentOffset = offset;
+
+        while (remainingLength > 0) {
+            int toSend;
+
+            synchronized (mWriteLock) {
+                if (mAvailableSendBytes != null) {
+                    toSend = (int) Math.min(remainingLength, Math.min(maxData, mAvailableSendBytes));
+                    mAvailableSendBytes -= toSend;
+                } else {
+                    toSend = Math.min(remainingLength, maxData);
+                }
+            }
+
+            try {
+                mAdbConnection.sendPacket(AdbProtocol.generateWrite(mLocalId, mRemoteId, bytes, currentOffset, toSend, mAdbConnection.getProtocolVersion()));
+            } catch (InterruptedException | AdbPairingRequiredException e) {
+                //noinspection UnnecessaryInitCause
+                throw (IOException) new IOException().initCause(e);
+            }
+
+            currentOffset += toSend;
+            remainingLength -= toSend;
+
+            synchronized (mWriteLock) {
+                if (mAvailableSendBytes != null && mAvailableSendBytes <= 0 && remainingLength > 0) {
+                    while (!mIsClosed && mAvailableSendBytes <= 0) {
+                        try {
+                            mWriteLock.wait();
+                        } catch (InterruptedException e) {
+                            //noinspection UnnecessaryInitCause
+                            throw (IOException) new IOException().initCause(e);
+                        }
+                    }
+
+                    if (mIsClosed) {
+                        throw new IOException("Stream closed");
+                    }
+                }
             }
         }
     }
@@ -247,6 +361,30 @@ public class AdbStream implements Closeable {
     }
 
     /**
+     * Called by the connection thread to notify that the stream was closed by the peer.
+     */
+    void notifyClose(boolean closedByPeer) {
+        // We don't call close() because it sends another CLSE
+        if (closedByPeer && !mReadQueue.isEmpty()) {
+            // The remote peer closed the stream, but we haven't finished reading the remaining data
+            mPendingClose = true;
+        } else {
+            mIsClosed = true;
+        }
+
+        // Notify all stream openers/readers/writers that the stream is closed
+        synchronized (this) {
+            notifyAll();
+        }
+        synchronized (mWriteLock) {
+            mWriteLock.notifyAll();
+        }
+        synchronized (mReadQueue) {
+            mReadQueue.notifyAll();
+        }
+    }
+
+    /**
      * Closes the stream. This sends a close message to the peer.
      *
      * @throws IOException If the stream fails while sending the close message.
@@ -255,14 +393,20 @@ public class AdbStream implements Closeable {
     public void close() throws IOException {
         synchronized (this) {
             // This may already be closed by the remote host
-            if (mIsClosed)
+            if (mIsClosed) {
                 return;
+            }
 
             // Notify readers/writers that we've closed
             notifyClose(false);
         }
 
-        mAdbConnection.sendPacket(AdbProtocol.generateClose(mLocalId, mRemoteId, mAdbConnection.getProtocolVersion()));
+        try {
+            mAdbConnection.sendPacket(AdbProtocol.generateClose(mLocalId, mRemoteId, mAdbConnection.getProtocolVersion()));
+        } catch (InterruptedException | AdbPairingRequiredException e) {
+            //noinspection UnnecessaryInitCause
+            throw (IOException) new IOException().initCause(e);
+        }
     }
 
     /**

@@ -9,10 +9,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 
+import com.eiyooooo.adblink.entity.Preferences;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +29,7 @@ import timber.log.Timber;
  */
 // Copyright 2013 Cameron Gutman
 public class AdbConnection implements Closeable {
+
     /**
      * The underlying channel to the ADB daemon.
      */
@@ -74,7 +79,16 @@ public class AdbConnection implements Closeable {
      */
     private volatile int mMaxData = AdbProtocol.MAX_PAYLOAD;
 
+    /**
+     * Specifies the protocol version of the ADB daemon.
+     * This is only valid after connect() returns successfully.
+     */
     private volatile int mProtocolVersion = AdbProtocol.A_VERSION_MIN;
+
+    /**
+     * Specifies whether delayed ACK is enabled. This is only valid after connect() returns successfully.
+     */
+    private volatile boolean mEnableDelayedAck;
 
     @NonNull
     private final AdbKeyPair mAdbKeyPair;
@@ -121,6 +135,8 @@ public class AdbConnection implements Closeable {
      */
     @WorkerThread
     private AdbConnection(@NonNull AdbChannel channel, @NonNull AdbKeyPair adbKeyPair) {
+        this.mEnableDelayedAck = Preferences.INSTANCE.getEnableDelayedAck();
+
         this.mChannel = Objects.requireNonNull(channel);
         this.mAdbKeyPair = Objects.requireNonNull(adbKeyPair);
 
@@ -161,18 +177,36 @@ public class AdbConnection implements Closeable {
 
                             synchronized (waitingStream) {
                                 if (msg.command == AdbProtocol.A_OKAY) {
-                                    // We're ready for writes
-                                    waitingStream.updateRemoteId(msg.arg0);
-                                    waitingStream.readyForWrite();
+                                    Integer ackedBytes = null;
+                                    byte[] payload = msg.payload;
+                                    if (payload != null) {
+                                        if (payload.length == 4) {
+                                            ackedBytes = ByteBuffer.wrap(payload).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                                        } else if (payload.length != 0) {
+                                            throw new Exception("invalid A_OKAY payload size: " + payload.length);
+                                        }
+                                    }
 
-                                    // Notify an open/write
-                                    waitingStream.notify();
+                                    if (waitingStream.getRemoteId() == 0) {
+                                        waitingStream.setRemoteId(msg.arg0);
+                                        // Check if we can continue sending data
+                                        waitingStream.processAck(ackedBytes);
+                                        // Notify an open
+                                        waitingStream.notifyAll();
+                                    } else if (waitingStream.getRemoteId() == msg.arg0) {
+                                        waitingStream.processAck(ackedBytes);
+                                    } else {
+                                        throw new Exception("invalid A_OKAY stream ID: " + msg.arg0);
+                                    }
                                 } else if (msg.command == AdbProtocol.A_WRTE) {
                                     // Got some data from our partner
                                     waitingStream.addPayload(msg.payload);
-
                                     // Tell it we're ready for more
-                                    waitingStream.sendReady();
+                                    if (mEnableDelayedAck) {
+                                        waitingStream.sendReady(msg.payload.length);
+                                    } else {
+                                        waitingStream.sendReady();
+                                    }
                                 } else { // if (msg.command == AdbProtocol.A_CLSE) {
                                     mOpenedStreams.remove(msg.arg1);
                                     // Notify readers and writers
@@ -222,6 +256,9 @@ public class AdbConnection implements Closeable {
                             synchronized (AdbConnection.this) {
                                 mProtocolVersion = msg.arg0;
                                 mMaxData = msg.arg1;
+                                if (mEnableDelayedAck) {
+                                    mEnableDelayedAck = containsByteSequenceReverse(msg.payload, AdbProtocol.DELAYED_ACK_BYTES);
+                                }
                                 mConnectionEstablished = true;
                                 AdbConnection.this.notifyAll();
                             }
@@ -254,9 +291,19 @@ public class AdbConnection implements Closeable {
      * Get the version of the ADB protocol supported by the ADB daemon. In API 29 (Android 9) or later, the daemon
      * returns {@link AdbProtocol#A_VERSION_SKIP_CHECKSUM}. In other cases, it returns {@link AdbProtocol#A_VERSION_MIN}.
      *
+     * @return The protocol version indicated in the CONNECT packet.
+     * @throws InterruptedException        If a connection cannot be waited on.
+     * @throws IOException                 if the connection fails.
+     * @throws AdbPairingRequiredException If ADB lacks pairing
      * @see #isConnectionEstablished()
      */
-    public int getProtocolVersion() {
+    int getProtocolVersion() throws InterruptedException, IOException, AdbPairingRequiredException {
+        if (!mConnectAttempted) {
+            throw new IllegalStateException("connect() must be called first");
+        }
+
+        waitForConnection(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+
         return mProtocolVersion;
     }
 
@@ -268,6 +315,7 @@ public class AdbConnection implements Closeable {
      * @throws InterruptedException        If a connection cannot be waited on.
      * @throws IOException                 if the connection fails.
      * @throws AdbPairingRequiredException If ADB lacks pairing
+     * @see #isConnectionEstablished()
      */
     public int getMaxData() throws InterruptedException, IOException, AdbPairingRequiredException {
         if (!mConnectAttempted) {
@@ -280,8 +328,30 @@ public class AdbConnection implements Closeable {
     }
 
     /**
+     * Get if delayed ACK is enabled. A connection have to be attempted before calling this method and shall be blocked
+     * if the connection is in progress.
+     *
+     * @return {@code true} if delayed ACK is enabled, {@code false} otherwise.
+     * @throws InterruptedException        If a connection cannot be waited on.
+     * @throws IOException                 if the connection fails.
+     * @throws AdbPairingRequiredException If ADB lacks pairing
+     * @see #isConnectionEstablished()
+     */
+    public boolean isEnableDelayedAck() throws InterruptedException, IOException, AdbPairingRequiredException {
+        if (!mConnectAttempted) {
+            throw new IllegalStateException("connect() must be called first");
+        }
+
+        waitForConnection(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+
+        return mEnableDelayedAck;
+    }
+
+    /**
      * Whether a connection has been established. A connection has been established if a CONNECT request has been
      * received from the ADB daemon.
+     *
+     * @return {@code true} if a connection has been established, {@code false} otherwise.
      */
     public boolean isConnectionEstablished() {
         return mConnectionEstablished;
@@ -289,6 +359,8 @@ public class AdbConnection implements Closeable {
 
     /**
      * Whether the underlying channel is connected to an ADB daemon and is not in a closed state.
+     *
+     * @return {@code true} if the underlying channel is connected, {@code false} otherwise.
      */
     public boolean isConnected() {
         return mChannel.isConnected();
@@ -329,7 +401,7 @@ public class AdbConnection implements Closeable {
         }
 
         // Send CONNECT
-        sendPacket(AdbProtocol.generateConnect(mProtocolVersion));
+        sendPacket(AdbProtocol.generateConnect(mProtocolVersion, mEnableDelayedAck));
 
         // Start the connection thread to respond to the peer
         mConnectAttempted = true;
@@ -376,6 +448,7 @@ public class AdbConnection implements Closeable {
     public AdbStream open(@NonNull String destination)
             throws IOException, InterruptedException, AdbPairingRequiredException {
         int localId = ++mLastLocalId;
+        boolean enableDelayedAck = mEnableDelayedAck;
 
         if (!mConnectAttempted) {
             throw new IllegalStateException("connect() must be called first");
@@ -387,8 +460,13 @@ public class AdbConnection implements Closeable {
         AdbStream stream = new AdbStream(this, localId);
         mOpenedStreams.put(localId, stream);
 
+        // Enable delayed ACK if supported
+        if (enableDelayedAck) {
+            stream.enableDelayedAck();
+        }
+
         // Send OPEN
-        sendPacket(AdbProtocol.generateOpen(localId, Objects.requireNonNull(destination), mProtocolVersion));
+        sendPacket(AdbProtocol.generateOpen(localId, Objects.requireNonNull(destination), mProtocolVersion, enableDelayedAck));
 
         // Wait for the connection thread to receive the OKAY
         synchronized (stream) {
@@ -404,6 +482,16 @@ public class AdbConnection implements Closeable {
         return stream;
     }
 
+    /**
+     * Waits for the connection to be established.
+     *
+     * @param timeout The time to wait for the lock
+     * @param unit    The time unit of the timeout argument
+     * @return {@code true} if the connection was established, or {@code false} if the connection timed out
+     * @throws InterruptedException        If a connection cannot be waited on
+     * @throws IOException                 If the connection fails
+     * @throws AdbPairingRequiredException If ADB lacks pairing
+     */
     private boolean waitForConnection(long timeout, @NonNull TimeUnit unit)
             throws InterruptedException, IOException, AdbPairingRequiredException {
         synchronized (this) {
@@ -437,11 +525,22 @@ public class AdbConnection implements Closeable {
         return true;
     }
 
+    /**
+     * Sends a packet over the channel.
+     *
+     * @param packet The packet to send.
+     * @throws IOException If the channel fails while sending the packet
+     */
     void sendPacket(byte[] packet) throws IOException {
         mChannel.write(packet);
         mChannel.flush();
     }
 
+    /**
+     * Flushes the packet to the channel.
+     *
+     * @throws IOException If the channel fails while flushing the packet
+     */
     void flushPacket() throws IOException {
         mChannel.flush();
     }
@@ -476,5 +575,35 @@ public class AdbConnection implements Closeable {
             mConnectionThread.join();
         } catch (InterruptedException ignored) {
         }
+    }
+
+    /**
+     * This function checks if the byte array contains the specified byte sequence in reverse order.
+     *
+     * @param array    The byte array to search in.
+     * @param sequence The byte sequence to search for.
+     * @return {@code true} if the byte array contains the byte sequence in reverse order, {@code false} otherwise.
+     */
+    private static boolean containsByteSequenceReverse(byte[] array, byte[] sequence) {
+        if (array == null || sequence == null || array.length < sequence.length) {
+            return false;
+        }
+        if (sequence.length == 0) {
+            return true;
+        }
+
+        for (int i = array.length - sequence.length; i >= 0; i--) {
+            boolean found = true;
+            for (int j = 0; j < sequence.length; j++) {
+                if (array[i + j] != sequence[j]) {
+                    found = false;
+                    break;
+                }
+            }
+            if (found) {
+                return true;
+            }
+        }
+        return false;
     }
 }
