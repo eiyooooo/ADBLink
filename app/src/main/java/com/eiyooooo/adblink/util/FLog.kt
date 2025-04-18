@@ -42,6 +42,8 @@ object FLog {
     const val PREFIX = "[ADBLink ${BuildConfig.VERSION_NAME}]-> "
 
     private var logFile: File? = null
+    private val logFileLock = Any()
+
     private var fLogTree = FLogTree()
 
     private val logChannel = Channel<String>(Channel.UNLIMITED)
@@ -57,37 +59,40 @@ object FLog {
         val oldLogFiles = logsDir.listFiles { file ->
             file.isFile && file.name.startsWith("ADBLink-") && file.name.endsWith(".txt")
         }
-        logFile = File(logsDir, "ADBLink-${BuildConfig.VERSION_NAME}-${appStartTime.time}.txt")
 
-        if (oldLogFiles != null && oldLogFiles.isNotEmpty()) {
-            val sortedLogFiles = oldLogFiles.sortedBy { file ->
-                val regex = "ADBLink-.*-(\\d+)\\.txt".toRegex()
-                val match = regex.find(file.name)
-                match?.groupValues?.get(1)?.toLongOrNull() ?: 0L
-            }
+        synchronized(logFileLock) {
+            logFile = File(logsDir, "ADBLink-${BuildConfig.VERSION_NAME}-${appStartTime.time}.txt")
 
-            FileWriter(logFile, true).use { writer ->
-                val buffer = CharArray(8192)
-                sortedLogFiles.forEach { file ->
-                    try {
-                        if (file.exists()) {
-                            FileReader(file).use { reader ->
-                                var charsRead: Int
-                                while (reader.read(buffer).also { charsRead = it } > 0) {
-                                    writer.write(buffer, 0, charsRead)
+            if (oldLogFiles != null && oldLogFiles.isNotEmpty()) {
+                val sortedLogFiles = oldLogFiles.sortedBy { file ->
+                    val regex = "ADBLink-.*-(\\d+)\\.txt".toRegex()
+                    val match = regex.find(file.name)
+                    match?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+                }
+
+                FileWriter(logFile, true).use { writer ->
+                    val buffer = CharArray(8192)
+                    sortedLogFiles.forEach { file ->
+                        try {
+                            if (file.exists()) {
+                                FileReader(file).use { reader ->
+                                    var charsRead: Int
+                                    while (reader.read(buffer).also { charsRead = it } > 0) {
+                                        writer.write(buffer, 0, charsRead)
+                                    }
+                                    writer.write("\n")
                                 }
-                                writer.write("\n")
                             }
+                        } catch (e: Exception) {
+                            Log.e("FLog", "Error reading log file ${file.name}", e)
                         }
-                    } catch (e: Exception) {
-                        Log.e("FLog", "Error reading log file ${file.name}", e)
                     }
                 }
-            }
 
-            oldLogFiles.forEach { file ->
-                if (file.exists()) {
-                    file.delete()
+                oldLogFiles.forEach { file ->
+                    if (file.exists()) {
+                        file.delete()
+                    }
                 }
             }
         }
@@ -170,16 +175,19 @@ object FLog {
     @SuppressLint("LogNotTimber")
     private suspend fun writeToFile(logBuffer: List<String>) {
         withContext(Dispatchers.IO) {
-            try {
-                FileWriter(logFile, true).use { writer ->
-                    for (logMessage in logBuffer) {
-                        writer.write(logMessage)
+            synchronized(logFileLock) {
+                try {
+                    val currentLogFile = logFile ?: return@synchronized
+                    FileWriter(currentLogFile, true).use { writer ->
+                        for (logMessage in logBuffer) {
+                            writer.write(logMessage)
+                        }
+                        writer.flush()
+                        writer.close()
                     }
-                    writer.flush()
-                    writer.close()
+                } catch (t: Throwable) {
+                    Log.e("FLog", "Error writing log to file", t)
                 }
-            } catch (t: Throwable) {
-                Log.e("FLog", "Error writing log to file", t)
             }
         }
     }
@@ -187,10 +195,45 @@ object FLog {
     suspend fun read(): String? {
         return withContext(Dispatchers.IO) {
             writeLast()
-            logFile?.let {
-                if (it.exists()) {
-                    it.readText()
-                } else null
+            synchronized(logFileLock) {
+                logFile?.let {
+                    if (it.exists()) {
+                        it.readText()
+                    } else null
+                }
+            }
+        }
+    }
+
+    suspend fun clear(): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                writeLast()
+                synchronized(logFileLock) {
+                    logFile?.let {
+                        if (it.exists()) {
+                            FileWriter(it, false).use { writer ->
+                                writer.write("")
+                                writer.flush()
+                            }
+                            Timber.i("Log file cleared")
+                            FileWriter(it, true).use { writer ->
+                                writer.write(
+                                    "$PREFIX Log cleared at ${
+                                        SimpleDateFormat(
+                                            "yyyy-MM-dd HH:mm:ss",
+                                            Locale.getDefault()
+                                        ).format(Date())
+                                    }\n"
+                                )
+                            }
+                            true
+                        } else false
+                    } ?: false
+                }
+            } catch (t: Throwable) {
+                Timber.e(t, "Error clearing log file")
+                false
             }
         }
     }
@@ -209,7 +252,9 @@ object FLog {
         logScope.launch {
             try {
                 writeLast()
-                val sourceFile = logFile ?: throw IllegalStateException("Log file not found")
+                val sourceFile = synchronized(logFileLock) {
+                    logFile ?: throw IllegalStateException("Log file not found")
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val contentValues = ContentValues().apply {
                         put(MediaStore.Downloads.DISPLAY_NAME, sourceFile.name)
@@ -219,8 +264,10 @@ object FLog {
                     val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                     uri?.let { outputUri ->
                         context.contentResolver.openOutputStream(outputUri)?.use { outputStream ->
-                            FileInputStream(sourceFile).use { inputStream ->
-                                inputStream.copyTo(outputStream)
+                            synchronized(logFileLock) {
+                                FileInputStream(sourceFile).use { inputStream ->
+                                    inputStream.copyTo(outputStream)
+                                }
                             }
                         }
                         showSnackbar(context.getString(R.string.log_export_success))
@@ -232,7 +279,9 @@ object FLog {
                         adbLinkDir.mkdirs()
                     }
                     val destinationFile = File(adbLinkDir, sourceFile.name)
-                    sourceFile.copyTo(destinationFile, overwrite = true)
+                    synchronized(logFileLock) {
+                        sourceFile.copyTo(destinationFile, overwrite = true)
+                    }
                     showSnackbar(context.getString(R.string.log_export_success))
                 }
             } catch (e: Exception) {

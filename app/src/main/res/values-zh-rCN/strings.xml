@@ -97,8 +97,21 @@
     <string name="copied">已复制</string>
 
     <string name="app_log">应用日志</string>
+    <string name="page_indicator">第 %1$d 页，共 %2$d 页</string>
+    <string name="previous_page">上一页</string>
+    <string name="next_page">下一页</string>
+    <string name="refresh_logs">刷新日志</string>
+    <string name="log_refresh_success">日志已刷新</string>
     <string name="export_logs">导出日志</string>
-    <string name="log_export_success">日志已导出到 Download/ADBLink 文件夹</string>
-    <string name="log_export_failed">日志导出失败: %1$s</string>
+    <string name="log_export_confirm">确定要导出当前日志吗？\n\n当前日志将导出到 Download/ADBLink 文件夹</string>
+    <string name="log_export_success">当前日志已导出到 Download/ADBLink 文件夹</string>
+    <string name="log_export_failed">当前日志导出失败: %1$s</string>
     <string name="storage_permission_required">需要存储权限来导出日志</string>
+    <string name="clear_logs">清除日志</string>
+    <string name="log_clear_confirm">确定要清除当前日志吗？此操作无法撤消。</string>
+    <string name="log_clear_success">当前日志已清除</string>
+    <string name="log_clear_failed">清除当前日志失败</string>
+
+    <string name="confirm">确认</string>
+    <string name="cancel">取消</string>
 </resources>

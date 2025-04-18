@@ -97,8 +97,21 @@
     <string name="copied">Copied</string>
 
     <string name="app_log">App log</string>
+    <string name="page_indicator">Page %1$d of %2$d</string>
+    <string name="previous_page">Previous page</string>
+    <string name="next_page">Next page</string>
+    <string name="refresh_logs">Refresh logs</string>
+    <string name="log_refresh_success">Logs refreshed</string>
     <string name="export_logs">Export logs</string>
-    <string name="log_export_success">Logs exported to Download/ADBLink folder</string>
-    <string name="log_export_failed">Log export failed: %1$s</string>
+    <string name="log_export_confirm">Are you sure you want to export current logs?\n\nCurrent logs will be exported to the Download/ADBLink folder</string>
+    <string name="log_export_success">Current logs exported to Download/ADBLink folder</string>
+    <string name="log_export_failed">Current logs export failed: %1$s</string>
     <string name="storage_permission_required">Storage permission is required to export logs</string>
+    <string name="clear_logs">Clear logs</string>
+    <string name="log_clear_confirm">Are you sure you want to clear current logs? This action cannot be undone.</string>
+    <string name="log_clear_success">Current logs cleared</string>
+    <string name="log_clear_failed">Failed to clear current logs</string>
+
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
 </resources>
