@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.eiyooooo.adblink.R
@@ -60,8 +61,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Column {
                 SettingSwitchItem(
-                    title = context.getString(R.string.use_system_color),
-                    description = context.getString(R.string.use_system_color_description),
+                    title = stringResource(R.string.use_system_color),
+                    description = stringResource(R.string.use_system_color_description),
                     checked = systemColor,
                     onCheckedChange = {
                         Preferences.systemColor = it
@@ -76,14 +77,14 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
 
         val darkThemeList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             listOf(
-                context.getString(R.string.follow_system),
-                context.getString(R.string.always_off),
-                context.getString(R.string.always_on)
+                stringResource(R.string.follow_system),
+                stringResource(R.string.always_off),
+                stringResource(R.string.always_on)
             )
         } else {
             listOf(
-                context.getString(R.string.always_off),
-                context.getString(R.string.always_on)
+                stringResource(R.string.always_off),
+                stringResource(R.string.always_on)
             )
         }
         val currentThemeIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -96,7 +97,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
             }
         }
         SettingDropdownItem(
-            title = context.getString(R.string.dark_theme),
+            title = stringResource(R.string.dark_theme),
             currentValue = darkThemeList[currentThemeIndex],
             options = darkThemeList,
             onValueChange = {
@@ -115,12 +116,12 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         val languageList = listOf(
-            context.getString(R.string.system_language),
-            context.getString(R.string.english),
-            context.getString(R.string.simplified_chinese)
+            stringResource(R.string.system_language),
+            stringResource(R.string.english),
+            stringResource(R.string.simplified_chinese)
         )
         SettingDropdownItem(
-            title = context.getString(R.string.app_language),
+            title = stringResource(R.string.app_language),
             currentValue = languageList[appLanguage],
             options = languageList,
             onValueChange = { language ->
@@ -140,8 +141,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingDropdownItem(
-            title = context.getString(R.string.audio_output_channel),
-            description = context.getString(R.string.audio_output_channel_description),
+            title = stringResource(R.string.audio_output_channel),
+            description = stringResource(R.string.audio_output_channel_description),
             currentValue = audioChannel.toString(),
             options = (0..20).map { it.toString() },
             onValueChange = { channel ->
@@ -152,8 +153,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.enable_usb),
-            description = context.getString(R.string.enable_usb_description),
+            title = stringResource(R.string.enable_usb),
+            description = stringResource(R.string.enable_usb_description),
             checked = enableUSB,
             onCheckedChange = { Preferences.enableUSB = it }
         )
@@ -161,8 +162,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.full_screen),
-            description = context.getString(R.string.full_screen_description),
+            title = stringResource(R.string.full_screen),
+            description = stringResource(R.string.full_screen_description),
             checked = setFullScreen,
             onCheckedChange = { Preferences.setFullScreen = it }
         )
@@ -170,8 +171,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.enable_log),
-            description = context.getString(R.string.enable_log_description),
+            title = stringResource(R.string.enable_log),
+            description = stringResource(R.string.enable_log_description),
             checked = enableLog,
             onCheckedChange = {
                 if (it) {
@@ -192,7 +193,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         ) {
             Column {
                 SettingClickableItem(
-                    title = context.getString(R.string.view_log),
+                    title = stringResource(R.string.view_log),
                     onClick = {
                         navController?.run {
                             navigate(NavRoutes.SETTINGS_OTHER_LOG)
@@ -207,7 +208,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         }
 
         SettingClickableItem(
-            title = context.getString(R.string.view_local_ip),
+            title = stringResource(R.string.view_local_ip),
             onClick = {
                 navController?.run {
                     navigate(NavRoutes.SETTINGS_OTHER_IP)
@@ -220,8 +221,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingClickableItem(
-            title = context.getString(R.string.regenerate_adb_key),
-            description = context.getString(R.string.current_adb_key, AdbManager.getAdbKeyPairName()),
+            title = stringResource(R.string.regenerate_adb_key),
+            description = stringResource(R.string.current_adb_key, AdbManager.getAdbKeyPairName()),
             onClick = {
                 showRegenerateKeyDialog = true
             },
@@ -232,8 +233,8 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
     if (showRegenerateKeyDialog) {
         AlertDialog(
             onDismissRequest = { showRegenerateKeyDialog = false },
-            title = { Text(text = context.getString(R.string.regenerate_adb_key)) },
-            text = { Text(text = context.getString(R.string.regenerate_adb_key_confirm)) },
+            title = { Text(text = stringResource(R.string.regenerate_adb_key)) },
+            text = { Text(text = stringResource(R.string.regenerate_adb_key_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -241,14 +242,14 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
                         showRegenerateKeyDialog = false
                     }
                 ) {
-                    Text(context.getString(android.R.string.ok))
+                    Text(stringResource(android.R.string.ok))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showRegenerateKeyDialog = false }
                 ) {
-                    Text(context.getString(android.R.string.cancel))
+                    Text(stringResource(android.R.string.cancel))
                 }
             }
         )

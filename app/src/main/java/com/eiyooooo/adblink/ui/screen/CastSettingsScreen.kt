@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.entity.Preferences
@@ -22,7 +22,6 @@ import com.eiyooooo.adblink.ui.component.SettingSwitchItem
 
 @Composable
 fun CastSettingsContent() {
-    val context = LocalContext.current
 
     val castWakeDeviceOnConnect by Preferences.castWakeDeviceOnConnectFlow.collectAsState(initial = Preferences.castWakeDeviceOnConnect)
     val castTurnOffScreenOnConnect by Preferences.castTurnOffScreenOnConnectFlow.collectAsState(initial = Preferences.castTurnOffScreenOnConnect)
@@ -36,8 +35,8 @@ fun CastSettingsContent() {
         modifier = Modifier.fillMaxWidth()
     ) {
         SettingSwitchItem(
-            title = context.getString(R.string.cast_wake_device_on_connect),
-            description = context.getString(R.string.cast_wake_device_on_connect_description),
+            title = stringResource(R.string.cast_wake_device_on_connect),
+            description = stringResource(R.string.cast_wake_device_on_connect_description),
             checked = castWakeDeviceOnConnect,
             onCheckedChange = {
                 Preferences.castWakeDeviceOnConnect = it
@@ -51,8 +50,8 @@ fun CastSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.cast_turn_off_screen_on_connect),
-            description = context.getString(R.string.cast_turn_off_screen_on_connect_description),
+            title = stringResource(R.string.cast_turn_off_screen_on_connect),
+            description = stringResource(R.string.cast_turn_off_screen_on_connect_description),
             checked = castTurnOffScreenOnConnect,
             enabled = castWakeDeviceOnConnect,
             onCheckedChange = {
@@ -63,8 +62,8 @@ fun CastSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.cast_lock_device_on_disconnect),
-            description = context.getString(R.string.cast_lock_device_on_disconnect_description),
+            title = stringResource(R.string.cast_lock_device_on_disconnect),
+            description = stringResource(R.string.cast_lock_device_on_disconnect_description),
             checked = castLockDeviceOnDisconnect,
             onCheckedChange = {
                 Preferences.castLockDeviceOnDisconnect = it
@@ -77,8 +76,8 @@ fun CastSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.cast_turn_on_screen_on_disconnect),
-            description = context.getString(R.string.cast_turn_on_screen_on_disconnect_description),
+            title = stringResource(R.string.cast_turn_on_screen_on_disconnect),
+            description = stringResource(R.string.cast_turn_on_screen_on_disconnect_description),
             checked = castTurnOnScreenOnDisconnect,
             enabled = !castLockDeviceOnDisconnect,
             onCheckedChange = {
@@ -89,8 +88,8 @@ fun CastSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.cast_keep_screen_awake),
-            description = context.getString(R.string.cast_keep_screen_awake_description),
+            title = stringResource(R.string.cast_keep_screen_awake),
+            description = stringResource(R.string.cast_keep_screen_awake_description),
             checked = castKeepScreenAwake,
             onCheckedChange = { Preferences.castKeepScreenAwake = it }
         )
@@ -98,8 +97,8 @@ fun CastSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.cast_full_fill),
-            description = context.getString(R.string.cast_full_fill_description),
+            title = stringResource(R.string.cast_full_fill),
+            description = stringResource(R.string.cast_full_fill_description),
             checked = castFillFull,
             onCheckedChange = { Preferences.castFillFull = it }
         )
@@ -107,8 +106,8 @@ fun CastSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = context.getString(R.string.cast_default_show_nav_bar),
-            description = context.getString(R.string.cast_default_show_nav_bar_description),
+            title = stringResource(R.string.cast_default_show_nav_bar),
+            description = stringResource(R.string.cast_default_show_nav_bar_description),
             checked = defaultCastShowNavBar,
             onCheckedChange = { Preferences.defaultCastShowNavBar = it },
             isLast = true
