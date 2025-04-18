@@ -176,7 +176,6 @@ public class UsbChannel implements AdbChannel {
     public void close() throws IOException {
         mConnected.set(false);
         mDeviceConnection.releaseInterface(usbInterface);
-        mDeviceConnection.bulkTransfer(mEndpointOut, new byte[40], 40, 2000);
         mDeviceConnection.close();
     }
 
