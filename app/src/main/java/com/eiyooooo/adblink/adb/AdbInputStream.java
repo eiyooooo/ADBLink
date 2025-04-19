@@ -28,7 +28,6 @@ public class AdbInputStream extends InputStream {
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        if (mAdbStream.isClosed()) return -1;
         return mAdbStream.read(b, off, len);
     }
 

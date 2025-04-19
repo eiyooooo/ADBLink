@@ -65,7 +65,7 @@ public class AdbStream implements Closeable {
     /**
      * Whether the remote peer has closed but we still have unread data in the queue
      */
-    private volatile boolean mPendingClose;
+    private volatile boolean mPendingClose = false;
 
     /**
      * Creates a new AdbStream object on the specified AdbConnection
@@ -177,7 +177,9 @@ public class AdbStream implements Closeable {
      * @throws IOException If there's a mismatch between socket and payload acknowledgment modes
      */
     void processAck(Integer ackedBytes) throws IOException {
-        if (mIsClosed) return;
+        if (mPendingClose || mIsClosed) {
+            return;
+        }
 
         boolean socketHasAck = mAvailableSendBytes != null;
         boolean payloadHasAck = ackedBytes != null;
@@ -211,9 +213,18 @@ public class AdbStream implements Closeable {
      * @throws IOException If the stream fails while waiting
      */
     public int read(byte[] bytes, int offset, int length) throws IOException {
+        if (bytes == null || length <= 0) {
+            return 0;
+        }
+
         if (mReadBuffer.hasRemaining()) {
             return readBuffer(bytes, offset, length);
         }
+
+        if (mIsClosed) {
+            throw new IOException("Stream closed");
+        }
+
         // Buffer has no data, grab from the queue
         synchronized (mReadQueue) {
             byte[] data;
@@ -226,6 +237,16 @@ public class AdbStream implements Closeable {
                     throw (IOException) new IOException().initCause(e);
                 }
             }
+
+            if (mIsClosed) {
+                throw new IOException("Stream closed");
+            }
+
+            if (mPendingClose && mReadQueue.isEmpty()) {
+                // The peer closed the stream, and we've finished reading the stream data, so this stream is finished
+                mIsClosed = true;
+            }
+
             // Add data to the buffer
             if (data != null) {
                 mReadBuffer.clear();
@@ -235,18 +256,9 @@ public class AdbStream implements Closeable {
                     return readBuffer(bytes, offset, length);
                 }
             }
-
-            if (mIsClosed) {
-                throw new IOException("Stream closed.");
-            }
-
-            if (mPendingClose && mReadQueue.isEmpty()) {
-                // The peer closed the stream, and we've finished reading the stream data, so this stream is finished
-                mIsClosed = true;
-            }
         }
 
-        return -1;
+        return 0;
     }
 
     /**
@@ -275,9 +287,17 @@ public class AdbStream implements Closeable {
      * @throws IOException If the stream fails while sending data
      */
     public void write(byte[] bytes, int offset, int length) throws IOException {
+        if (bytes == null || length <= 0) {
+            return;
+        }
+
+        if (mPendingClose || mIsClosed) {
+            throw new IOException("Stream closed");
+        }
+
         synchronized (mWriteLock) {
             if (mAvailableSendBytes != null) {
-                while (!mIsClosed && mAvailableSendBytes <= 0) {
+                while (!mPendingClose && !mIsClosed && mAvailableSendBytes <= 0) {
                     try {
                         mWriteLock.wait();
                     } catch (InterruptedException e) {
@@ -286,7 +306,7 @@ public class AdbStream implements Closeable {
                     }
                 }
             } else {
-                while (!mIsClosed && !mWriteReady.compareAndSet(true, false)) {
+                while (!mPendingClose && !mIsClosed && !mWriteReady.compareAndSet(true, false)) {
                     try {
                         mWriteLock.wait();
                     } catch (InterruptedException e) {
@@ -295,7 +315,8 @@ public class AdbStream implements Closeable {
                     }
                 }
             }
-            if (mIsClosed) {
+
+            if (mPendingClose || mIsClosed) {
                 throw new IOException("Stream closed");
             }
         }
@@ -316,12 +337,20 @@ public class AdbStream implements Closeable {
             int toSend;
 
             synchronized (mWriteLock) {
+                if (mPendingClose || mIsClosed) {
+                    throw new IOException("Stream closed");
+                }
+
                 if (mAvailableSendBytes != null) {
                     toSend = (int) Math.min(remainingLength, Math.min(maxData, mAvailableSendBytes));
                     mAvailableSendBytes -= toSend;
                 } else {
                     toSend = Math.min(remainingLength, maxData);
                 }
+            }
+
+            if (mPendingClose || mIsClosed) {
+                throw new IOException("Stream closed");
             }
 
             try {
@@ -334,19 +363,21 @@ public class AdbStream implements Closeable {
             currentOffset += toSend;
             remainingLength -= toSend;
 
-            synchronized (mWriteLock) {
-                if (mAvailableSendBytes != null && mAvailableSendBytes <= 0 && remainingLength > 0) {
-                    while (!mIsClosed && mAvailableSendBytes <= 0) {
-                        try {
-                            mWriteLock.wait();
-                        } catch (InterruptedException e) {
-                            //noinspection UnnecessaryInitCause
-                            throw (IOException) new IOException().initCause(e);
+            if (mAvailableSendBytes != null) {
+                synchronized (mWriteLock) {
+                    if (mAvailableSendBytes <= 0 && remainingLength > 0) {
+                        while (!mPendingClose && !mIsClosed && mAvailableSendBytes <= 0) {
+                            try {
+                                mWriteLock.wait();
+                            } catch (InterruptedException e) {
+                                //noinspection UnnecessaryInitCause
+                                throw (IOException) new IOException().initCause(e);
+                            }
                         }
-                    }
 
-                    if (mIsClosed) {
-                        throw new IOException("Stream closed");
+                        if (mPendingClose || mIsClosed) {
+                            throw new IOException("Stream closed");
+                        }
                     }
                 }
             }
@@ -354,7 +385,7 @@ public class AdbStream implements Closeable {
     }
 
     public void flush() throws IOException {
-        if (mIsClosed) {
+        if (mPendingClose || mIsClosed) {
             throw new IOException("Stream closed");
         }
         mAdbConnection.flushPacket();
@@ -372,7 +403,7 @@ public class AdbStream implements Closeable {
             mIsClosed = true;
         }
 
-        // Notify all stream openers/readers/writers that the stream is closed
+        // Notify stream openers/readers/writers that the stream is closed
         synchronized (this) {
             notifyAll();
         }
@@ -393,11 +424,11 @@ public class AdbStream implements Closeable {
     public void close() throws IOException {
         synchronized (this) {
             // This may already be closed by the remote host
-            if (mIsClosed) {
+            if (mPendingClose || mIsClosed) {
                 return;
             }
 
-            // Notify readers/writers that we've closed
+            // Notify stream openers/readers/writers that we've closed
             notifyClose(false);
         }
 
@@ -427,7 +458,7 @@ public class AdbStream implements Closeable {
     public int available() throws IOException {
         synchronized (this) {
             if (mIsClosed) {
-                throw new IOException("Stream closed.");
+                throw new IOException("Stream closed");
             }
             if (mReadBuffer.hasRemaining()) {
                 return mReadBuffer.remaining();
