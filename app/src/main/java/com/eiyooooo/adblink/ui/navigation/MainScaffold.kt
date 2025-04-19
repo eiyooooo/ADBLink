@@ -7,7 +7,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,7 +18,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
@@ -29,15 +27,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
-import com.eiyooooo.adblink.util.FLog
+import com.eiyooooo.adblink.ui.dialog.InitFailedDialog
 import kotlinx.coroutines.launch
-import kotlin.system.exitProcess
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +58,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
     }
 
     if (!AdbManager.initialized) {
-        InitFailedDialog(showSnackbar)
+        InitFailedDialog()
     }
 
     when (widthSizeClass) {
@@ -200,36 +196,4 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
             }
         }
     }
-}
-
-@Composable
-fun InitFailedDialog(showSnackbar: (String) -> Unit) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
-    AlertDialog(
-        onDismissRequest = {},
-        title = { Text(stringResource(R.string.init_failed_title)) },
-        text = { Text(stringResource(R.string.init_failed_message)) },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    exitProcess(0)
-                }
-            ) {
-                Text(stringResource(R.string.close_app))
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = {
-                    coroutineScope.launch {
-                        FLog.export(context, showSnackbar)
-                    }
-                }
-            ) {
-                Text(stringResource(R.string.export_logs))
-            }
-        }
-    )
 }
