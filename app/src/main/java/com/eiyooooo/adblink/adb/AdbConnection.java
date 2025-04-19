@@ -74,6 +74,11 @@ public class AdbConnection implements Closeable {
     private volatile Exception mConnectionException;
 
     /**
+     * Specifies whether the connection is closing.
+     */
+    private volatile boolean mClosing = false;
+
+    /**
      * Specifies the maximum amount data that can be sent to the remote peer.
      * This is only valid after connect() returns successfully.
      */
@@ -270,8 +275,10 @@ public class AdbConnection implements Closeable {
                             break;
                     }
                 } catch (Exception e) {
-                    mConnectionException = e;
-                    Timber.e(e, "Connection error");
+                    if (!mClosing) {
+                        mConnectionException = e;
+                        Timber.e(e, "Connection error");
+                    }
                     // The cleanup is taken care of by a combination of this thread and close()
                     break;
                 }
@@ -281,6 +288,7 @@ public class AdbConnection implements Closeable {
             synchronized (AdbConnection.this) {
                 cleanupStreams();
                 AdbConnection.this.notifyAll();
+                mClosing = false;
                 mConnectionEstablished = false;
                 mConnectAttempted = false;
             }
@@ -566,6 +574,8 @@ public class AdbConnection implements Closeable {
      */
     @Override
     public void close() throws IOException {
+        mClosing = true;
+
         // Closing the channel will kick the connection thread
         mChannel.close();
 

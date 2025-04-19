@@ -404,7 +404,7 @@ final class AdbProtocol {
             do {
                 int bytesRead = channel.read(header.array(), dataRead, ADB_HEADER_LENGTH - dataRead);
                 if (bytesRead < 0) {
-                    throw new IOException("Stream closed");
+                    throw new IOException("Channel closed");
                 } else dataRead += bytesRead;
             } while (dataRead < ADB_HEADER_LENGTH);
 
@@ -434,7 +434,7 @@ final class AdbProtocol {
             do {
                 int bytesRead = channel.read(msg.payload, dataRead, msg.dataLength - dataRead);
                 if (bytesRead < 0) {
-                    throw new IOException("Stream closed");
+                    throw new IOException("Channel closed");
                 } else dataRead += bytesRead;
             } while (dataRead < msg.dataLength);
 
