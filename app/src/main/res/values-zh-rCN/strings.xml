@@ -78,6 +78,8 @@
     <string name="simplified_chinese">简体中文</string>
     <string name="audio_output_channel">音频输出声道</string>
     <string name="audio_output_channel_description">没有特殊需要请保持0声道</string>
+    <string name="enable_delayed_ack">启用延迟确认</string>
+    <string name="enable_delayed_ack_description">启用延迟确认以实现更高效的网络通信 (仅在受支持的设备上有效)</string>
     <string name="enable_usb">启用USB设备检测</string>
     <string name="enable_usb_description">若不希望使用有线连接，可关闭</string>
     <string name="full_screen">沉浸式全屏模式</string>

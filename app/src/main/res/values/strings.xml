@@ -78,6 +78,8 @@
     <string name="simplified_chinese">Simplified Chinese</string>
     <string name="audio_output_channel">Audio output channel</string>
     <string name="audio_output_channel_description">Please keep 0 if there is no special need</string>
+    <string name="enable_delayed_ack">Enable delayed ACK</string>
+    <string name="enable_delayed_ack_description">Enable delayed acknowledgement for more efficient network communication (only effective on supported devices)</string>
     <string name="enable_usb">Enable USB detection</string>
     <string name="enable_usb_description">If you do not want to connect via USB, you can turn this off</string>
     <string name="full_screen">Immersive full screen mode</string>
