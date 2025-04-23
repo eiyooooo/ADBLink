@@ -222,7 +222,7 @@ public class AdbStream implements Closeable {
         }
 
         if (mIsClosed) {
-            throw new IOException("Stream closed");
+            return -1;
         }
 
         // Buffer has no data, grab from the queue
@@ -239,7 +239,7 @@ public class AdbStream implements Closeable {
             }
 
             if (mIsClosed) {
-                throw new IOException("Stream closed");
+                return -1;
             }
 
             if (mPendingClose && mReadQueue.isEmpty()) {
