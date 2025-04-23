@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Objects;
 
 
@@ -68,7 +70,46 @@ public class LocalServices {
      * Note that there is no single-shot service to retrieve the list only once.
      */
     public static final int TRACK_JDWP = 11;
+    /**
+     * Synchronize the file system. This is used to synchronize the file system between the device and the client.
+     */
     public static final int SYNC = 12;
+
+    private static int mkid(char a, char b, char c, char d) {
+        return a | (b << 8) | (c << 16) | (d << 24);
+    }
+
+    public static final int ID_LSTAT_V1 = mkid('S', 'T', 'A', 'T');
+    public static final int ID_STAT_V2 = mkid('S', 'T', 'A', '2');
+    public static final int ID_LSTAT_V2 = mkid('L', 'S', 'T', '2');
+
+    public static final int ID_LIST_V1 = mkid('L', 'I', 'S', 'T');
+    public static final int ID_LIST_V2 = mkid('L', 'I', 'S', '2');
+    public static final int ID_DENT_V1 = mkid('D', 'E', 'N', 'T');
+    public static final int ID_DENT_V2 = mkid('D', 'N', 'T', '2');
+
+    public static final int ID_SEND_V1 = mkid('S', 'E', 'N', 'D');
+    public static final int ID_SEND_V2 = mkid('S', 'N', 'D', '2');
+    public static final int ID_RECV_V1 = mkid('R', 'E', 'C', 'V');
+    public static final int ID_RECV_V2 = mkid('R', 'C', 'V', '2');
+
+    public static final int ID_DONE = mkid('D', 'O', 'N', 'E');
+    public static final int ID_DATA = mkid('D', 'A', 'T', 'A');
+    public static final int ID_OKAY = mkid('O', 'K', 'A', 'Y');
+    public static final int ID_FAIL = mkid('F', 'A', 'I', 'L');
+    public static final int ID_QUIT = mkid('Q', 'U', 'I', 'T');
+
+    public static final int SYNC_DATA_MAX = 64 * 1024;
+
+    public static ByteBuffer generateSyncHeader(int id, int arg) {
+        ByteBuffer tmpBuffer = ByteBuffer.allocate(8);
+        tmpBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        tmpBuffer.putInt(id);
+        tmpBuffer.putInt(arg);
+        tmpBuffer.flip();
+        return tmpBuffer;
+    }
+
     /**
      * Reverse socket connections from the device running ADB daemon to this client. This should not be used if both
      * the ADB daemon and the client are in the same device.

@@ -17,7 +17,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -89,6 +93,8 @@ public class AdbConnection implements Closeable {
      * This is only valid after connect() returns successfully.
      */
     private volatile int mProtocolVersion = AdbProtocol.A_VERSION_MIN;
+
+    private volatile List<String> mSupportedFeatures;
 
     /**
      * Specifies whether delayed ACK is enabled. This is only valid after connect() returns successfully.
@@ -261,8 +267,11 @@ public class AdbConnection implements Closeable {
                             synchronized (AdbConnection.this) {
                                 mProtocolVersion = msg.arg0;
                                 mMaxData = msg.arg1;
-                                if (mEnableDelayedAck) {
-                                    mEnableDelayedAck = containsByteSequenceReverse(msg.payload, AdbProtocol.DELAYED_ACK_BYTES);
+                                mSupportedFeatures = parseBanner(msg.payload);
+                                if (mEnableDelayedAck && mSupportedFeatures != null) {
+                                    mEnableDelayedAck = mSupportedFeatures.contains("delayed_ack");
+                                } else {
+                                    mEnableDelayedAck = false;
                                 }
                                 mConnectionEstablished = true;
                                 AdbConnection.this.notifyAll();
@@ -293,6 +302,43 @@ public class AdbConnection implements Closeable {
                 mConnectAttempted = false;
             }
         });
+    }
+
+    /**
+     * Parses the banner from the ADB daemon.
+     *
+     * @param bannerBytes The bytes of the banner.
+     * @return A list of supported features.
+     */
+    private List<String> parseBanner(byte[] bannerBytes) {
+        String banner = new String(bannerBytes, StandardCharsets.UTF_8);
+        Timber.d("parseBanner: %s", banner);
+
+        String[] pieces = banner.split(":");
+
+        List<String> features = new ArrayList<>();
+
+        if (pieces.length > 2) {
+            String props = pieces[2];
+            String[] propArray = props.split(";");
+
+            for (String prop : propArray) {
+                if (prop.isEmpty()) continue;
+
+                String[] keyValue = prop.split("=");
+                if (keyValue.length != 2) continue;
+
+                String key = keyValue[0];
+                String value = keyValue[1];
+
+                if (key.equals("features")) {
+                    String[] featureArray = value.split(",");
+                    features.addAll(Arrays.asList(featureArray));
+                }
+            }
+        }
+
+        return features;
     }
 
     /**
@@ -333,6 +379,25 @@ public class AdbConnection implements Closeable {
         waitForConnection(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
         return mMaxData;
+    }
+
+    /**
+     * Check if the given feature is supported by the ADB daemon.
+     *
+     * @param feature The feature to check.
+     * @return {@code true} if the feature is supported, {@code false} otherwise.
+     * @throws InterruptedException        If a connection cannot be waited on.
+     * @throws IOException                 if the connection fails.
+     * @throws AdbPairingRequiredException If ADB lacks pairing
+     */
+    boolean hasFeature(String feature) throws InterruptedException, IOException, AdbPairingRequiredException {
+        if (!mConnectAttempted) {
+            throw new IllegalStateException("connect() must be called first");
+        }
+
+        waitForConnection(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+
+        return mSupportedFeatures != null && mSupportedFeatures.contains(feature);
     }
 
     /**
@@ -585,35 +650,5 @@ public class AdbConnection implements Closeable {
             mConnectionThread.join();
         } catch (InterruptedException ignored) {
         }
-    }
-
-    /**
-     * This function checks if the byte array contains the specified byte sequence in reverse order.
-     *
-     * @param array    The byte array to search in.
-     * @param sequence The byte sequence to search for.
-     * @return {@code true} if the byte array contains the byte sequence in reverse order, {@code false} otherwise.
-     */
-    private static boolean containsByteSequenceReverse(byte[] array, byte[] sequence) {
-        if (array == null || sequence == null || array.length < sequence.length) {
-            return false;
-        }
-        if (sequence.length == 0) {
-            return true;
-        }
-
-        for (int i = array.length - sequence.length; i >= 0; i--) {
-            boolean found = true;
-            for (int j = 0; j < sequence.length; j++) {
-                if (array[i + j] != sequence[j]) {
-                    found = false;
-                    break;
-                }
-            }
-            if (found) {
-                return true;
-            }
-        }
-        return false;
     }
 }
