@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.DeviceHub
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,7 +94,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
                             }
                         )
                         NavigationBarItem(
-                            icon = { Icon(Icons.Filled.Devices, contentDescription = stringResource(R.string.manage)) },
+                            icon = { Icon(Icons.Filled.DeviceHub, contentDescription = stringResource(R.string.manage)) },
                             label = { Text(stringResource(R.string.manage)) },
                             selected = currentRoute == NavRoutes.MANAGE,
                             onClick = {
@@ -146,7 +146,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
                         }
                     )
                     NavigationRailItem(
-                        icon = { Icon(Icons.Filled.Devices, contentDescription = stringResource(R.string.manage)) },
+                        icon = { Icon(Icons.Filled.DeviceHub, contentDescription = stringResource(R.string.manage)) },
                         label = { Text(stringResource(R.string.manage)) },
                         selected = currentRoute == NavRoutes.MANAGE,
                         onClick = {
