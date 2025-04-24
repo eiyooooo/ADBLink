@@ -4,10 +4,12 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
-import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.eiyooooo.adblink.BuildConfig
+import com.eiyooooo.adblink.MyBroadcastReceiver
+import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.util.get
 import com.eiyooooo.adblink.util.put
+import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 
 object Preferences {
 
@@ -170,7 +172,9 @@ object Preferences {
         get() = sharedPreferences.get("enableUSB", true)
         set(value) {
             sharedPreferences.put("enableUSB", value)
-//TODO            if (value && this::sharedPreferences.isInitialized) AppData.myBroadcastReceiver.checkConnectedUsb(AppData.main)
+            if (value) {
+                MyBroadcastReceiver.INSTANCE.checkConnectedUsbDevice(application)
+            }
         }
 
     val enableUSBFlow
