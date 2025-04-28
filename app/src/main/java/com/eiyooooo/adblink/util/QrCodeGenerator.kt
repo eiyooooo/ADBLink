@@ -26,7 +26,7 @@ object QrCodeGenerator {
     fun encodeQrCodeToBitmap(
         contents: String, size: Int = DEFAULT_SIZE,
         foregroundColor: Int = Color.BLACK,
-        backgroundColor: Int = Color.WHITE
+        backgroundColor: Int = Color.TRANSPARENT
     ): Bitmap {
         val bitMatrix = encodeQrCode(contents, size)
         val width = bitMatrix.width
