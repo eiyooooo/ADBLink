@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -51,6 +52,7 @@ final class AdbPairingConnection implements Closeable {
     private final int mPort;
     private final byte[] mPswd;
     private final PeerInfo mPeerInfo;
+    private PeerInfo mRemotePeerInfo;
     private final SSLContext mSslContext;
     private final Role mRole = Role.Client;
 
@@ -253,9 +255,12 @@ final class AdbPairingConnection implements Closeable {
             return false;
         }
 
-        PeerInfo theirPeerInfo = PeerInfo.readFrom(ByteBuffer.wrap(decryptedMsg));
-        Timber.d(theirPeerInfo.toString());
+        mRemotePeerInfo = PeerInfo.readFrom(ByteBuffer.wrap(decryptedMsg));
         return true;
+    }
+
+    public String getRemotePeerInfo() {
+        return mRemotePeerInfo.getDataAsString();
     }
 
     @Override
@@ -300,13 +305,30 @@ final class AdbPairingConnection implements Closeable {
             buffer.put(type).put(data);
         }
 
+        public String getDataAsString() {
+            return new String(trimTrailingZeros(data), StandardCharsets.UTF_8);
+        }
+
         @NonNull
         @Override
         public String toString() {
             return "PeerInfo{" +
                     "type=" + type +
-                    ", data=" + Arrays.toString(data) +
+                    ", data=" + getDataAsString() +
                     '}';
+        }
+
+        private static byte[] trimTrailingZeros(byte[] input) {
+            int end = input.length;
+            while (end > 0 && input[end - 1] == 0) {
+                end--;
+            }
+            if (end == 0) {
+                return new byte[0];
+            }
+            byte[] result = new byte[end];
+            System.arraycopy(input, 0, result, 0, end);
+            return result;
         }
     }
 
