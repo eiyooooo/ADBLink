@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets
 
 object QrCodeGenerator {
 
-    private const val DEFAULT_SIZE = 512
+    const val DEFAULT_SIZE = 512
 
     private fun encodeQrCode(contents: String, size: Int = DEFAULT_SIZE): BitMatrix {
         val hints = mutableMapOf<EncodeHintType, Any>()

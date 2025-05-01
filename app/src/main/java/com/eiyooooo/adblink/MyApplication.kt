@@ -30,7 +30,7 @@ class MyApplication : Application() {
                 FLog.stop()
             }
             Timber.i("App started at: $appStartTime, AdbManager initialized")
-            MyBroadcastReceiver.INSTANCE.register(this)
+            AdbUsbDeviceReceiver.INSTANCE.register(this)
         }
     }
 

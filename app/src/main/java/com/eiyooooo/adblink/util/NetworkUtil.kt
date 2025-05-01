@@ -42,3 +42,31 @@ suspend fun InetAddress.isReachableLocallySuspend(timeout: Int = 2000): Boolean 
         false
     }
 }
+
+fun String.isValidHostAddress(): Boolean {
+    if (isBlank()) return false
+
+    val cleanHost = if (startsWith("[") && endsWith("]")) {
+        substring(1, length - 1)
+    } else {
+        this
+    }
+
+    val ipv4Pattern = Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\$")
+    if (ipv4Pattern.matches(cleanHost)) return true
+
+    val domainPattern = Regex("^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}\$|^localhost\$")
+    if (domainPattern.matches(cleanHost)) return true
+
+    return try {
+        InetAddress.getByName(cleanHost) is Inet6Address
+    } catch (e: Exception) {
+        false
+    }
+}
+
+fun String.isValidPort(): Boolean {
+    if (isBlank()) return false
+    val port = toIntOrNull() ?: return false
+    return port in 0..65535
+}

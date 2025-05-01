@@ -19,6 +19,46 @@
     <string name="log">Log</string>
     <string name="ip_address">IP Address</string>
 
+    <string name="adb_usb">ADB USB</string>
+    <string name="adb_usb_enable_instructions">1. Enable Developer Options on the target device.\n2. Turn on USB Debugging in Developer Options.\n3. Connect the target device via USB OTG.\n4. Grant this application USB permission.</string>
+    <string name="adb_enable_guide">How to enable USB debugging?</string>
+    <string name="adb_enable_guide_url">https://developer.android.com/studio/debug/dev-options#enable</string>
+    <string name="usb_no_device_hint">No ADB USB device detected. \nConnect your target device via USB OTG.</string>
+    <string name="check_usb_device_permission">Check USB device permission</string>
+    <string name="usb_all_authorized_hint">All possible ADB USB devices are authorized.</string>
+    <string name="adb_tcp">ADB TCP</string>
+    <string name="adb_tcp_security_warning">Warning: ADB TCP connection is insecure and transmits data without encryption. Ensure you are on a trusted network.</string>
+    <string name="adb_tcp_enable_instructions">1. Enable Developer Options on the target device.\n2. Turn on USB Debugging in Developer Options.\n3. Set up ADB over TCP:\n    3.1 Connect to your computer and run \'adb tcpip 5555\'.\n    3.2 Or connect via USB and enable ADB over TCP through this app.</string>
+    <string name="adb_tcp_enable_guide">How to enable ADB TCP?</string>
+    <string name="adb_tcp_enable_guide_url">https://developer.android.com/tools/adb#wireless</string>
+    <string name="adb_tcp_port_label">Port (e.g., 5555)</string>
+    <string name="adb_tls">ADB TLS</string>
+    <string name="qr_code">QR Code</string>
+    <string name="pair_code">Pair Code</string>
+    <string name="adb_tls_notice">ADB TLS provides secure encrypted connections between devices. Please ensure the privacy of your pairing code.(Only supported on Android 11 and above)</string>
+    <string name="adb_tls_enable_instructions">1. Enable Developer options on the target device.\n2. Turn on Wireless debugging in Developer options.\n3. Select \'Pair device with QR code\' or \'Pair device with pairing code\'.</string>
+    <string name="adb_tls_enable_guide">How to enable ADB TLS?</string>
+    <string name="adb_tls_enable_guide_url">https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi</string>
+    <string name="adb_tls_pair_notice">Current ADB key name is %1$s, if already paired, no need to re-pair.</string>
+    <string name="pairing_qr_code">Pairing QR code</string>
+    <string name="generating_qr_code">Generating QR code…</string>
+    <string name="qr_generation_failed">QR code generation failed</string>
+    <string name="host_address">Host address</string>
+    <string name="host_address_port">Host address:port</string>
+
+    <string name="guide">Guide</string>
+    <string name="pair">Pair</string>
+    <string name="add_device">Add Device</string>
+    <string name="device_added">Device added, attempting to connect.</string>
+    <string name="pairing">Pairing…</string>
+    <string name="pairing_failed">Pairing failed</string>
+    <string name="pairing_success">Pairing successful, attempting to connect.</string>
+
+    <string name="invalid_host_or_port">Invalid host address or port number</string>
+    <string name="invalid_host_port_code">Invalid host address, port, or pairing code</string>
+    <string name="device_already_exists">Device already exists</string>
+    <string name="open_browser_failed">Open browser failed</string>
+
     <string name="project_website">Project website</string>
     <string name="instructions_for_use">Instructions for use</string>
     <string name="privacy_policy">Privacy Policy</string>

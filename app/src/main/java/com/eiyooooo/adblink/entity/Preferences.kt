@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
+import com.eiyooooo.adblink.AdbUsbDeviceReceiver
 import com.eiyooooo.adblink.BuildConfig
-import com.eiyooooo.adblink.MyBroadcastReceiver
 import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.util.get
 import com.eiyooooo.adblink.util.put
@@ -173,7 +173,9 @@ object Preferences {
         set(value) {
             sharedPreferences.put("enableUSB", value)
             if (value) {
-                MyBroadcastReceiver.INSTANCE.checkConnectedUsbDevice(application)
+                AdbUsbDeviceReceiver.INSTANCE.checkConnectedUsbDevice(application)
+            } else {
+                AdbUsbDeviceReceiver.INSTANCE.resetUsbConnections()
             }
         }
 

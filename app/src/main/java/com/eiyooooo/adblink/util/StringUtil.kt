@@ -5,3 +5,7 @@ fun generateRandomString(length: Int): String {
     val charSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-+*/<>{}"
     return (1..length).map { charSet.random() }.joinToString("")
 }
+
+fun generateUuid(): String {
+    return java.util.UUID.randomUUID().toString()
+}

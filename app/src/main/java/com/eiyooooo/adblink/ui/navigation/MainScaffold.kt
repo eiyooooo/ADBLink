@@ -4,9 +4,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeviceHub
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,14 +28,22 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
+import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.ui.component.ExpandableFab
+import com.eiyooooo.adblink.ui.component.FabItem
+import com.eiyooooo.adblink.ui.dialog.AdbTcpDialog
+import com.eiyooooo.adblink.ui.dialog.AdbTlsDialog
+import com.eiyooooo.adblink.ui.dialog.AdbUsbDialog
 import com.eiyooooo.adblink.ui.dialog.InitFailedDialog
 import kotlinx.coroutines.launch
 
@@ -43,6 +55,10 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
 
     val title = getRouteTitle(currentRoute)
     val showBackButton = shouldShowBackButton(currentRoute)
+
+    var showUsbDeviceDialog by remember { mutableStateOf(false) }
+    var showAdbTcpDeviceDialog by remember { mutableStateOf(false) }
+    var showAdbTlsDeviceDialog by remember { mutableStateOf(false) }
 
     val widthSizeClass = windowSizeClass.widthSizeClass
     val heightSizeClass = windowSizeClass.heightSizeClass
@@ -59,6 +75,24 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
 
     if (!AdbManager.initialized) {
         InitFailedDialog()
+    }
+
+    if (showUsbDeviceDialog) {
+        AdbUsbDialog(onDismissRequest = { showUsbDeviceDialog = false })
+    }
+
+    if (showAdbTcpDeviceDialog) {
+        AdbTcpDialog(
+            showSnackbar = showSnackbar,
+            onDismissRequest = { showAdbTcpDeviceDialog = false }
+        )
+    }
+
+    if (showAdbTlsDeviceDialog) {
+        AdbTlsDialog(
+            showSnackbar = showSnackbar,
+            onDismissRequest = { showAdbTlsDeviceDialog = false }
+        )
     }
 
     when (widthSizeClass) {
@@ -116,6 +150,36 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
                                     }
                                 }
                             }
+                        )
+                    }
+                },
+                floatingActionButton = {
+                    if (currentRoute == NavRoutes.HOME) {
+                        ExpandableFab(
+                            items = if (Preferences.enableUSB) {
+                                listOf(
+                                    FabItem(Icons.Filled.Usb, stringResource(R.string.adb_usb)) {
+                                        showUsbDeviceDialog = true
+                                    },
+                                    FabItem(Icons.Filled.Wifi, stringResource(R.string.adb_tcp)) {
+                                        showAdbTcpDeviceDialog = true
+                                    },
+                                    FabItem(Icons.Filled.Security, stringResource(R.string.adb_tls)) {
+                                        showAdbTlsDeviceDialog = true
+                                    }
+                                )
+                            } else {
+                                listOf(
+                                    FabItem(Icons.Filled.Wifi, stringResource(R.string.adb_tcp)) {
+                                        showAdbTcpDeviceDialog = true
+                                    },
+                                    FabItem(Icons.Filled.Security, stringResource(R.string.adb_tls)) {
+                                        showAdbTlsDeviceDialog = true
+                                    }
+                                )
+                            },
+                            icon = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.add_device)
                         )
                     }
                 },
@@ -186,6 +250,36 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
                                         }
                                     }
                                 }
+                            )
+                        }
+                    },
+                    floatingActionButton = {
+                        if (currentRoute == NavRoutes.HOME) {
+                            ExpandableFab(
+                                items = if (Preferences.enableUSB) {
+                                    listOf(
+                                        FabItem(Icons.Filled.Usb, stringResource(R.string.adb_usb)) {
+                                            showUsbDeviceDialog = true
+                                        },
+                                        FabItem(Icons.Filled.Wifi, stringResource(R.string.adb_tcp)) {
+                                            showAdbTcpDeviceDialog = true
+                                        },
+                                        FabItem(Icons.Filled.Security, stringResource(R.string.adb_tls)) {
+                                            showAdbTlsDeviceDialog = true
+                                        }
+                                    )
+                                } else {
+                                    listOf(
+                                        FabItem(Icons.Filled.Wifi, stringResource(R.string.adb_tcp)) {
+                                            showAdbTcpDeviceDialog = true
+                                        },
+                                        FabItem(Icons.Filled.Security, stringResource(R.string.adb_tls)) {
+                                            showAdbTlsDeviceDialog = true
+                                        }
+                                    )
+                                },
+                                icon = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.add_device)
                             )
                         }
                     },
