@@ -117,10 +117,10 @@ object AdbManager {
                             tlsName = remotePeerInfo,
                             tlsHostPort = null
                         )
-                        DeviceRepository.addOrUpdateDevice(device)
+                        DeviceRepository.addDevice(device)
                         Timber.d("Added device to repository via pairing: $serial")
                     } else {
-                        DeviceRepository.addOrUpdateDevice(existingDevice.copy(tlsName = remotePeerInfo))
+                        DeviceRepository.updateDevice(existingDevice.copy(tlsName = remotePeerInfo))
                         Timber.d("Updated device in repository via pairing: $serial")
                     }
                 }

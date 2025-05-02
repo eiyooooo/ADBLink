@@ -1,44 +1,23 @@
 package com.eiyooooo.adblink.data
 
-import android.content.Context
 import android.hardware.usb.UsbDevice
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.eiyooooo.adblink.application
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import timber.log.Timber
 
 object DeviceRepository {
 
-    private val Context.deviceDataStore: DataStore<Preferences> by preferencesDataStore(name = "devices")
-    private val DEVICES_KEY = stringPreferencesKey("devices")
+    private val database = DeviceDatabase.getInstance(application)
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        prettyPrint = false
-    }
+    private val deviceDao = database.deviceDao()
 
     private val usbDeviceMap = MutableStateFlow<Map<String, UsbDevice>>(emptyMap())
 
-    private val persistedDevices: Flow<List<Device>> = application.deviceDataStore.data
-        .map { preferences ->
-            preferences[DEVICES_KEY]?.let {
-                try {
-                    json.decodeFromString<List<Device>>(it)
-                } catch (e: Exception) {
-                    Timber.e(e, "Failed to decode devices")
-                    emptyList()
-                }
-            } ?: emptyList()
-        }
+    private val persistedDevices: Flow<List<Device>> = deviceDao.getAllDevices().map { entities ->
+        entities.map { it.toDevice() }
+    }
 
     val devices: Flow<List<Device>> = combine(persistedDevices, usbDeviceMap) { devices, usbMap ->
         devices.map { device ->
@@ -50,30 +29,18 @@ object DeviceRepository {
         }
     }
 
-    suspend fun addOrUpdateDevice(device: Device) {
+    suspend fun addDevice(device: Device) {
         if (device.usbDevice != null) {
             updateUsbDevice(device.uuid, device.usbDevice)
         }
+        deviceDao.insertDevice(DeviceEntity.fromDevice(device))
+    }
 
-        application.deviceDataStore.edit { preferences ->
-            val currentDevices = preferences[DEVICES_KEY]?.let {
-                try {
-                    json.decodeFromString<List<Device>>(it)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            } ?: emptyList()
-
-            val updatedDevices = currentDevices.toMutableList()
-            val index = updatedDevices.indexOfFirst { it.uuid == device.uuid }
-            if (index >= 0) {
-                updatedDevices[index] = device
-            } else {
-                updatedDevices.add(device)
-            }
-
-            preferences[DEVICES_KEY] = json.encodeToString(updatedDevices)
+    suspend fun updateDevice(device: Device) {
+        if (device.usbDevice != null) {
+            updateUsbDevice(device.uuid, device.usbDevice)
         }
+        deviceDao.updateDevice(DeviceEntity.fromDevice(device))
     }
 
     suspend fun removeDevice(uuid: String) {
@@ -82,19 +49,7 @@ object DeviceRepository {
             currentMap.remove(uuid)
             usbDeviceMap.value = currentMap
         }
-
-        application.deviceDataStore.edit { preferences ->
-            val currentDevices = preferences[DEVICES_KEY]?.let {
-                try {
-                    json.decodeFromString<List<Device>>(it)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            } ?: emptyList()
-
-            val updatedDevices = currentDevices.filter { it.uuid != uuid }
-            preferences[DEVICES_KEY] = json.encodeToString(updatedDevices)
-        }
+        deviceDao.deleteDevice(uuid)
     }
 
     fun updateUsbDevice(uuid: String, usbDevice: UsbDevice?) {

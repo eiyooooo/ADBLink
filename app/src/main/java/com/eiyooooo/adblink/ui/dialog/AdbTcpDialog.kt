@@ -137,7 +137,7 @@ fun AdbTcpDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
                                         tlsName = null,
                                         tlsHostPort = null
                                     )
-                                    DeviceRepository.addOrUpdateDevice(device)
+                                    DeviceRepository.addDevice(device)
                                     Timber.d("Added device to repository via AdbTcpDialog: $host:$port")
                                     showSnackbar(context.getString(R.string.device_added))
                                     onDismissRequest()

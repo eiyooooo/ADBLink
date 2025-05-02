@@ -3,10 +3,7 @@ package com.eiyooooo.adblink.data
 import android.hardware.usb.UsbDevice
 import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.util.generateUuid
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
-@Serializable
 data class Device(
     val uuid: String,
     // device information
