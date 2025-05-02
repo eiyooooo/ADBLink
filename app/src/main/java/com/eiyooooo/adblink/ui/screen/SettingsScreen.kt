@@ -57,20 +57,20 @@ fun SettingsScreen(
                     .padding(16.dp)
             ) {
                 SettingsMenuItem(
-                    title = stringResource(R.string.cast_settings),
-                    icon = Icons.Default.DisplaySettings,
+                    title = stringResource(R.string.default_cast_parameters),
+                    icon = Icons.Default.Settings,
                     onClick = {
-                        navController.navigate(NavRoutes.SETTINGS_CAST)
+                        navController.navigate(NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS)
                     }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsMenuItem(
-                    title = stringResource(R.string.default_cast_parameters),
-                    icon = Icons.Default.Settings,
+                    title = stringResource(R.string.cast_settings),
+                    icon = Icons.Default.DisplaySettings,
                     onClick = {
-                        navController.navigate(NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS)
+                        navController.navigate(NavRoutes.SETTINGS_CAST)
                     }
                 )
 
@@ -102,22 +102,22 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     SettingsMenuItem(
-                        title = stringResource(R.string.cast_settings),
-                        icon = Icons.Default.DisplaySettings,
-                        isSelected = selectedContent == NavRoutes.SETTINGS_CAST,
+                        title = stringResource(R.string.default_cast_parameters),
+                        icon = Icons.Default.Settings,
+                        isSelected = selectedContent == NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS,
                         onClick = {
-                            selectedContent = NavRoutes.SETTINGS_CAST
+                            selectedContent = NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS
                         }
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     SettingsMenuItem(
-                        title = stringResource(R.string.default_cast_parameters),
-                        icon = Icons.Default.Settings,
-                        isSelected = selectedContent == NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS,
+                        title = stringResource(R.string.cast_settings),
+                        icon = Icons.Default.DisplaySettings,
+                        isSelected = selectedContent == NavRoutes.SETTINGS_CAST,
                         onClick = {
-                            selectedContent = NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS
+                            selectedContent = NavRoutes.SETTINGS_CAST
                         }
                     )
 
@@ -156,8 +156,8 @@ fun SettingsScreen(
                             } else {
                                 modifier.verticalScroll(
                                     when (selectedContent) {
-                                        NavRoutes.SETTINGS_CAST -> castScrollState
                                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> defaultParamsScrollState
+                                        NavRoutes.SETTINGS_CAST -> castScrollState
                                         NavRoutes.SETTINGS_OTHER -> otherScrollState
                                         NavRoutes.SETTINGS_OTHER_IP -> ipScrollState
                                         NavRoutes.SETTINGS_ABOUT -> aboutScrollState
@@ -168,8 +168,8 @@ fun SettingsScreen(
                         }
                 ) {
                     when (selectedContent) {
-                        NavRoutes.SETTINGS_CAST -> CastSettingsContent()
                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> DefaultCastParametersSettingsContent()
+                        NavRoutes.SETTINGS_CAST -> CastSettingsContent()
                         NavRoutes.SETTINGS_OTHER -> OtherSettingsContent { selectedContent = it }
                         NavRoutes.SETTINGS_OTHER_IP -> IpContent(showSnackbar)
                         NavRoutes.SETTINGS_OTHER_LOG -> LogContent(showSnackbar)

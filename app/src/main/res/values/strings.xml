@@ -82,14 +82,10 @@
     <string name="cast_enable_audio_description">Works with Android 12 and above</string>
     <string name="cast_clipboard_sync">Clipboard sync</string>
     <string name="cast_clipboard_sync_description">Synchronize clipboard between devices</string>
-    <string name="cast_night_mode_sync">Dark mode sync</string>
-    <string name="cast_night_mode_sync_description">Synchronize dark mode between devices</string>
     <string name="cast_prefer_h265">Prefer H265</string>
     <string name="cast_prefer_h265_description">Prefer to use H265 for video encoding</string>
     <string name="cast_prefer_opus">Prefer Opus</string>
     <string name="cast_prefer_opus_description">Prefer to use Opus for audio encoding</string>
-    <string name="cast_free_scaling">Application transfer aspect ratio free scaling</string>
-    <string name="cast_free_scaling_description">Application transfer aspect ratio can be freely set</string>
 
     <string name="cast_wake_device_on_connect">Wake device after connection</string>
     <string name="cast_wake_device_on_connect_description">Wake device automatically after a successful cast connection</string>
@@ -103,8 +99,6 @@
     <string name="cast_keep_screen_awake_description">Keep device awake during cast connection</string>
     <string name="cast_default_show_nav_bar">Default show navigation bar</string>
     <string name="cast_default_show_nav_bar_description">Whether to show the navigation bar by default when casting</string>
-    <string name="cast_full_fill">Stretch and fill in Fullscreen mode</string>
-    <string name="cast_full_fill_description">Stretch the frame to fill all available areas in full-screen mode when casting (Note: No stretching if the aspect ratio difference is too large)</string>
 
     <string name="use_system_color">Use system theme color</string>
     <string name="use_system_color_description">Use the default theme color of the application when turned off</string>
@@ -116,8 +110,6 @@
     <string name="system_language">System language</string>
     <string name="english">English</string>
     <string name="simplified_chinese">Simplified Chinese</string>
-    <string name="audio_output_channel">Audio output channel</string>
-    <string name="audio_output_channel_description">Please keep 0 if there is no special need</string>
     <string name="enable_delayed_ack">Enable delayed ACK</string>
     <string name="enable_delayed_ack_description">Enable delayed acknowledgement for more efficient network communication (only effective on supported devices)</string>
     <string name="enable_usb">Enable USB detection</string>

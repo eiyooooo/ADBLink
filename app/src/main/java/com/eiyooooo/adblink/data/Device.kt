@@ -24,11 +24,8 @@ data class Device(
     val maxVideoBitrate: Int,
     val enableAudio: Boolean,
     val clipboardSync: Boolean,
-    val nightModeSync: Boolean,
     val preferH265: Boolean,
-    val preferOpus: Boolean,
-    val freeScaling: Boolean,
-    val showNavBar: Boolean
+    val preferOpus: Boolean
 ) {
 
     companion object {
@@ -56,11 +53,8 @@ data class Device(
                 maxVideoBitrate = Preferences.defaultCastMaxVideoBitrate,
                 enableAudio = Preferences.defaultCastEnableAudio,
                 clipboardSync = Preferences.defaultCastClipboardSync,
-                nightModeSync = Preferences.defaultCastNightModeSync,
                 preferH265 = Preferences.defaultCastPreferH265,
-                preferOpus = Preferences.defaultCastPreferOpus,
-                freeScaling = Preferences.defaultCastFreeScaling,
-                showNavBar = Preferences.defaultCastShowNavBar
+                preferOpus = Preferences.defaultCastPreferOpus
             )
         }
     }

@@ -28,7 +28,6 @@ fun CastSettingsContent() {
     val castLockDeviceOnDisconnect by Preferences.castLockDeviceOnDisconnectFlow.collectAsState(initial = Preferences.castLockDeviceOnDisconnect)
     val castTurnOnScreenOnDisconnect by Preferences.castTurnOnScreenOnDisconnectFlow.collectAsState(initial = Preferences.castTurnOnScreenOnDisconnect)
     val castKeepScreenAwake by Preferences.castKeepScreenAwakeFlow.collectAsState(initial = Preferences.castKeepScreenAwake)
-    val castFillFull by Preferences.castFillFullFlow.collectAsState(initial = Preferences.castFillFull)
     val defaultCastShowNavBar by Preferences.defaultCastShowNavBarFlow.collectAsState(initial = Preferences.defaultCastShowNavBar)
 
     Card(
@@ -92,15 +91,6 @@ fun CastSettingsContent() {
             description = stringResource(R.string.cast_keep_screen_awake_description),
             checked = castKeepScreenAwake,
             onCheckedChange = { Preferences.castKeepScreenAwake = it }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-        SettingSwitchItem(
-            title = stringResource(R.string.cast_full_fill),
-            description = stringResource(R.string.cast_full_fill_description),
-            checked = castFillFull,
-            onCheckedChange = { Preferences.castFillFull = it }
         )
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))

@@ -82,14 +82,10 @@
     <string name="cast_enable_audio_description">开启后将尝试传输音频，被控端需要安卓12或以上</string>
     <string name="cast_clipboard_sync">剪贴板同步</string>
     <string name="cast_clipboard_sync_description">同步设备之间的剪贴板</string>
-    <string name="cast_night_mode_sync">黑暗模式同步</string>
-    <string name="cast_night_mode_sync_description">同步设备之间的黑暗模式</string>
     <string name="cast_prefer_h265">优先H265</string>
     <string name="cast_prefer_h265_description">优先使用H265进行视频编码</string>
     <string name="cast_prefer_opus">优先Opus</string>
     <string name="cast_prefer_opus_description">优先使用Opus进行音频编码</string>
-    <string name="cast_free_scaling">应用流转宽高比例自由缩放</string>
-    <string name="cast_free_scaling_description">开启后应用流转宽高比例可自由设置</string>
 
     <string name="cast_wake_device_on_connect">连接后唤醒设备</string>
     <string name="cast_wake_device_on_connect_description">投屏连接成功后自动唤醒设备</string>
@@ -103,8 +99,6 @@
     <string name="cast_keep_screen_awake_description">投屏连接过程中保持设备唤醒</string>
     <string name="cast_default_show_nav_bar">默认显示导航栏</string>
     <string name="cast_default_show_nav_bar_description">投屏时是否默认显示导航栏</string>
-    <string name="cast_full_fill">全屏模式拉伸填充画面</string>
-    <string name="cast_full_fill_description">投屏时全屏模式下画面拉伸并填充所有可用区域 (注: 比例相差过大时不拉伸)</string>
 
     <string name="use_system_color">使用系统主题颜色</string>
     <string name="use_system_color_description">关闭后使用应用默认主题颜色</string>
@@ -116,8 +110,6 @@
     <string name="system_language">跟随系统</string>
     <string name="english">英文</string>
     <string name="simplified_chinese">简体中文</string>
-    <string name="audio_output_channel">音频输出声道</string>
-    <string name="audio_output_channel_description">没有特殊需要请保持0声道</string>
     <string name="enable_delayed_ack">启用延迟确认</string>
     <string name="enable_delayed_ack_description">启用延迟确认以实现更高效的网络通信 (仅在受支持的设备上有效)</string>
     <string name="enable_usb">启用USB设备检测</string>

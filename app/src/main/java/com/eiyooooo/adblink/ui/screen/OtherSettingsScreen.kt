@@ -47,7 +47,6 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
 
     val systemColor by Preferences.systemColorFlow.collectAsState(initial = Preferences.systemColor)
     val darkTheme by Preferences.darkThemeFlow.collectAsState(initial = Preferences.darkTheme)
-    val audioChannel by Preferences.audioChannelFlow.collectAsState(initial = Preferences.audioChannel)
     val enableDelayedAck by Preferences.enableDelayedAckFlow.collectAsState(initial = Preferences.enableDelayedAck)
     val enableUSB by Preferences.enableUSBFlow.collectAsState(initial = Preferences.enableUSB)
     val setFullScreen by Preferences.setFullScreenFlow.collectAsState(initial = Preferences.setFullScreen)
@@ -136,18 +135,6 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
                     Preferences.appLanguage = newValue
                     (context as? Activity)?.recreate()
                 }
-            }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-        SettingDropdownItem(
-            title = stringResource(R.string.audio_output_channel),
-            description = stringResource(R.string.audio_output_channel_description),
-            currentValue = audioChannel.toString(),
-            options = (0..20).map { it.toString() },
-            onValueChange = { channel ->
-                Preferences.audioChannel = channel.toInt()
             }
         )
 

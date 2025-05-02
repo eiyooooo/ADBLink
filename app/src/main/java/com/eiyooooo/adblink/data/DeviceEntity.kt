@@ -20,11 +20,8 @@ data class DeviceEntity(
     val maxVideoBitrate: Int,
     val enableAudio: Boolean,
     val clipboardSync: Boolean,
-    val nightModeSync: Boolean,
     val preferH265: Boolean,
-    val preferOpus: Boolean,
-    val freeScaling: Boolean,
-    val showNavBar: Boolean
+    val preferOpus: Boolean
 ) {
 
     fun toDevice() = Device(
@@ -43,11 +40,8 @@ data class DeviceEntity(
         maxVideoBitrate = maxVideoBitrate,
         enableAudio = enableAudio,
         clipboardSync = clipboardSync,
-        nightModeSync = nightModeSync,
         preferH265 = preferH265,
-        preferOpus = preferOpus,
-        freeScaling = freeScaling,
-        showNavBar = showNavBar
+        preferOpus = preferOpus
     )
 
     companion object {
@@ -66,11 +60,8 @@ data class DeviceEntity(
             maxVideoBitrate = device.maxVideoBitrate,
             enableAudio = device.enableAudio,
             clipboardSync = device.clipboardSync,
-            nightModeSync = device.nightModeSync,
             preferH265 = device.preferH265,
-            preferOpus = device.preferOpus,
-            freeScaling = device.freeScaling,
-            showNavBar = device.showNavBar
+            preferOpus = device.preferOpus
         )
     }
 }

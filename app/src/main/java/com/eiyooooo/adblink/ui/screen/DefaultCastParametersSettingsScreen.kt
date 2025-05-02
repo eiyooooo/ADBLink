@@ -34,10 +34,8 @@ fun DefaultCastParametersSettingsContent() {
     val defaultCastMaxVideoBitrate by Preferences.defaultCastMaxVideoBitrateFlow.collectAsState(initial = Preferences.defaultCastMaxVideoBitrate)
     val defaultCastEnableAudio by Preferences.defaultCastEnableAudioFlow.collectAsState(initial = Preferences.defaultCastEnableAudio)
     val defaultCastClipboardSync by Preferences.defaultCastClipboardSyncFlow.collectAsState(initial = Preferences.defaultCastClipboardSync)
-    val defaultCastNightModeSync by Preferences.defaultCastNightModeSyncFlow.collectAsState(initial = Preferences.defaultCastNightModeSync)
     val defaultCastPreferH265 by Preferences.defaultCastPreferH265Flow.collectAsState(initial = Preferences.defaultCastPreferH265)
     val defaultCastPreferOpus by Preferences.defaultCastPreferOpusFlow.collectAsState(initial = Preferences.defaultCastPreferOpus)
-    val defaultCastFreeScaling by Preferences.defaultCastFreeScalingFlow.collectAsState(initial = Preferences.defaultCastFreeScaling)
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -101,15 +99,6 @@ fun DefaultCastParametersSettingsContent() {
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         SettingSwitchItem(
-            title = stringResource(R.string.cast_night_mode_sync),
-            description = stringResource(R.string.cast_night_mode_sync_description),
-            checked = defaultCastNightModeSync,
-            onCheckedChange = { Preferences.defaultCastNightModeSync = it }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-        SettingSwitchItem(
             title = stringResource(R.string.cast_prefer_h265),
             description = stringResource(R.string.cast_prefer_h265_description),
             checked = defaultCastPreferH265,
@@ -122,16 +111,7 @@ fun DefaultCastParametersSettingsContent() {
             title = stringResource(R.string.cast_prefer_opus),
             description = stringResource(R.string.cast_prefer_opus_description),
             checked = defaultCastPreferOpus,
-            onCheckedChange = { Preferences.defaultCastPreferOpus = it }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-        SettingSwitchItem(
-            title = stringResource(R.string.cast_free_scaling),
-            description = stringResource(R.string.cast_free_scaling_description),
-            checked = defaultCastFreeScaling,
-            onCheckedChange = { Preferences.defaultCastFreeScaling = it },
+            onCheckedChange = { Preferences.defaultCastPreferOpus = it },
             isLast = true
         )
     }

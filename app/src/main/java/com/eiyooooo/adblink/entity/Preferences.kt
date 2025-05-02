@@ -61,13 +61,6 @@ object Preferences {
     val defaultCastClipboardSyncFlow
         get() = flowSharedPreferences.getBoolean("defaultCastClipboardSync", false).asFlow()
 
-    var defaultCastNightModeSync
-        get() = sharedPreferences.get("defaultCastNightModeSync", false)
-        set(value) = sharedPreferences.put("defaultCastNightModeSync", value)
-
-    val defaultCastNightModeSyncFlow
-        get() = flowSharedPreferences.getBoolean("defaultCastNightModeSync", false).asFlow()
-
     var defaultCastPreferH265
         get() = sharedPreferences.get("defaultCastPreferH265", true)
         set(value) = sharedPreferences.put("defaultCastPreferH265", value)
@@ -81,13 +74,6 @@ object Preferences {
 
     val defaultCastPreferOpusFlow
         get() = flowSharedPreferences.getBoolean("defaultCastPreferOpus", true).asFlow()
-
-    var defaultCastFreeScaling
-        get() = sharedPreferences.get("defaultCastFreeScaling", false)
-        set(value) = sharedPreferences.put("defaultCastFreeScaling", value)
-
-    val defaultCastFreeScalingFlow
-        get() = flowSharedPreferences.getBoolean("defaultCastFreeScaling", false).asFlow()
 
 
     var castWakeDeviceOnConnect
@@ -132,13 +118,6 @@ object Preferences {
     val defaultCastShowNavBarFlow
         get() = flowSharedPreferences.getBoolean("defaultCastShowNavBar", true).asFlow()
 
-    var castFillFull
-        get() = sharedPreferences.get("castFillFull", false)
-        set(value) = sharedPreferences.put("castFillFull", value)
-
-    val castFillFullFlow
-        get() = flowSharedPreferences.getBoolean("castFillFull", false).asFlow()
-
 
     var systemColor
         get() = sharedPreferences.get("systemColor", true)
@@ -160,13 +139,6 @@ object Preferences {
 
     val appLanguageFlow
         get() = flowSharedPreferences.getInt("appLanguage", 0).asFlow()
-
-    var audioChannel
-        get() = sharedPreferences.get("audioChannel", 0)
-        set(value) = sharedPreferences.put("audioChannel", value)
-
-    val audioChannelFlow
-        get() = flowSharedPreferences.getInt("audioChannel", 0).asFlow()
 
     var enableUSB
         get() = sharedPreferences.get("enableUSB", true)
