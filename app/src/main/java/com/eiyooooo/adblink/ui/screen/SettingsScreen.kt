@@ -19,7 +19,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -38,7 +38,7 @@ fun SettingsScreen(
     val compactScrollState = rememberScrollState()
     val isCompactScreen = widthSizeClass == WindowWidthSizeClass.Compact
 
-    var selectedContent by remember { mutableStateOf(NavRoutes.SETTINGS_ABOUT) }
+    var selectedContent by rememberSaveable { mutableStateOf(NavRoutes.SETTINGS_ABOUT) }
     val castScrollState = rememberScrollState()
     val defaultParamsScrollState = rememberScrollState()
     val otherScrollState = rememberScrollState()
