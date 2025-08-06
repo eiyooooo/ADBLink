@@ -12,7 +12,7 @@ data class Device(
     val deviceName: String,
     val deviceSerial: String,
     // device name for display
-    val name: String = "$deviceBrand $deviceName",
+    val name: String,
     // connection information
     @Transient val usbDevice: UsbDevice? = null,
     val tcpHostPort: HostPort?,
@@ -44,6 +44,7 @@ data class Device(
                 deviceBrand = deviceBrand,
                 deviceName = deviceName,
                 deviceSerial = deviceSerial,
+                name = "$deviceBrand $deviceName".trim(),
                 usbDevice = usbDevice,
                 tcpHostPort = tcpHostPort,
                 tlsName = tlsName,

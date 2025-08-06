@@ -54,6 +54,28 @@
     <string name="pairing_failed">Pairing failed</string>
     <string name="pairing_success">Pairing successful, attempting to connect.</string>
 
+    <string name="connection_status_icon_description">Connection status icon</string>
+    <string name="no_devices">No devices</string>
+    <string name="device_brand">Brand: %1$s</string>
+    <string name="device_model">Model: %1$s</string>
+    <string name="device_serial">Serial: %1$s</string>
+    <string name="connection_info">Connection info: %1$s</string>
+    <string name="connected_via_usb">Connected via USB</string>
+    <string name="connected_via_tcp">Connected via TCP (%1$s)</string>
+    <string name="connected_via_tls">Connected via ADB TLS (%1$s)</string>
+    <string name="connection_disconnected">Disconnected</string>
+    <string name="connection_connecting">Connecting…</string>
+    <string name="connection_connecting_permission">Connecting, please pay attention to the ADB authorization dialog on the device</string>
+    <string name="unidentified_device">Unidentified Device</string>
+    <string name="edit_device">Edit Device</string>
+    <string name="edit_device_instructions">ADB TCP and ADB TLS connections will first attempt to connect using the automatically discovered host address.\nIf the device cannot be discovered automatically, it will try to connect using the manually entered host address.</string>
+    <string name="device_name_label">Device Name</string>
+    <string name="adb_tcp_manual_address">ADB TCP Manual Address</string>
+    <string name="adb_tls_manual_address">ADB TLS Manual Address</string>
+    <string name="delete_device">Delete Device</string>
+    <string name="confirm_delete_title">Confirm Delete</string>
+    <string name="confirm_delete_message">Are you sure you want to delete device \"%1$s\"?</string>
+
     <string name="invalid_host_or_port">Invalid host address or port number</string>
     <string name="invalid_host_port_code">Invalid host address, port, or pairing code</string>
     <string name="device_already_exists">Device already exists</string>
