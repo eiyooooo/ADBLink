@@ -1,5 +1,6 @@
 package com.eiyooooo.adblink.util
 
+import com.eiyooooo.adblink.data.HostPort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -19,11 +20,11 @@ fun getIp(): Pair<ArrayList<String>, ArrayList<String>> {
                 val inetAddress = inetAddresses.nextElement()
                 if (!inetAddress.isLoopbackAddress) {
                     if (inetAddress is Inet4Address) {
-                        inetAddress.getHostAddress()?.let {
+                        inetAddress.hostAddress?.let {
                             ipv4Addresses.add(it)
                         }
-                    } else if (inetAddress is Inet6Address && !inetAddress.isLinkLocalAddress()) {
-                        ipv6Addresses.add("[" + inetAddress.getHostAddress() + "]")
+                    } else if (inetAddress is Inet6Address && !inetAddress.isLinkLocalAddress) {
+                        ipv6Addresses.add("[" + inetAddress.hostAddress + "]")
                     }
                 }
             }
@@ -52,15 +53,15 @@ fun String.isValidHostAddress(): Boolean {
         this
     }
 
-    val ipv4Pattern = Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\$")
+    val ipv4Pattern = Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
     if (ipv4Pattern.matches(cleanHost)) return true
 
-    val domainPattern = Regex("^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}\$|^localhost\$")
+    val domainPattern = Regex("^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$|^localhost$")
     if (domainPattern.matches(cleanHost)) return true
 
     return try {
         InetAddress.getByName(cleanHost) is Inet6Address
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         false
     }
 }
@@ -69,4 +70,18 @@ fun String.isValidPort(): Boolean {
     if (isBlank()) return false
     val port = toIntOrNull() ?: return false
     return port in 0..65535
+}
+
+fun String.parseHostPort(): HostPort? {
+    if (isBlank()) return null
+
+    val parts = split(":")
+    if (parts.size != 2) return null
+
+    val host = parts[0].trim()
+    val port = parts[1].trim()
+
+    if (!host.isValidHostAddress() || !port.isValidPort()) return null
+
+    return HostPort(host, port.toInt())
 }
