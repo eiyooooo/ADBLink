@@ -1,6 +1,7 @@
 package com.eiyooooo.adblink.data
 
 import android.hardware.usb.UsbDevice
+import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.application
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,13 +35,17 @@ object DeviceRepository {
             updateUsbDevice(device.uuid, device.usbDevice)
         }
         deviceDao.insertDevice(DeviceEntity.fromDevice(device))
+        AdbManager.connectDevice(device)
     }
 
-    suspend fun updateDevice(device: Device) {
-        if (device.usbDevice != null) {
-            updateUsbDevice(device.uuid, device.usbDevice)
+    suspend fun updateDevice(device: Device, update: (Device) -> Device) {
+        val oldDevice = device
+        val updatedDevice = update(device)
+        if (updatedDevice.usbDevice != null) {
+            updateUsbDevice(updatedDevice.uuid, updatedDevice.usbDevice)
         }
-        deviceDao.updateDevice(DeviceEntity.fromDevice(device))
+        deviceDao.updateDevice(DeviceEntity.fromDevice(updatedDevice))
+        AdbManager.reconnectDevice(oldDevice, updatedDevice)
     }
 
     suspend fun removeDevice(uuid: String) {
@@ -50,6 +55,7 @@ object DeviceRepository {
             usbDeviceMap.value = currentMap
         }
         deviceDao.deleteDevice(uuid)
+        AdbManager.disconnectDevice(uuid)
     }
 
     fun updateUsbDevice(uuid: String, usbDevice: UsbDevice?) {

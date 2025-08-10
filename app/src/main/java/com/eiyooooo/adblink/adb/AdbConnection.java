@@ -440,6 +440,39 @@ public class AdbConnection implements Closeable {
     }
 
     /**
+     * Check if this connection is using USB transport.
+     *
+     * @return {@code true} if using USB transport, {@code false} otherwise.
+     */
+    public boolean isUsbConnection() {
+        return mChannel instanceof UsbChannel;
+    }
+
+    /**
+     * Check if this connection is using TLS transport.
+     *
+     * @return {@code true} if using TLS transport, {@code false} otherwise.
+     */
+    public boolean isTlsConnection() {
+        if (mChannel instanceof TcpChannel) {
+            return ((TcpChannel) mChannel).isTls();
+        }
+        return false;
+    }
+
+    /**
+     * Check if this connection is using TCP transport (non-TLS).
+     *
+     * @return {@code true} if using TCP transport, {@code false} otherwise.
+     */
+    public boolean isTcpConnection() {
+        if (mChannel instanceof TcpChannel) {
+            return !((TcpChannel) mChannel).isTls();
+        }
+        return false;
+    }
+
+    /**
      * Same as {@link #connect(long, TimeUnit, boolean)} without throwing anything if the first authentication attempt
      * fails.
      *

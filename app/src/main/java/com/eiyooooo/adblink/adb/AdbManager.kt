@@ -10,15 +10,20 @@ import android.os.ext.SdkExtensions
 import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.entity.ConnectionState
+import com.eiyooooo.adblink.entity.SystemServices.usbManager
+import com.eiyooooo.adblink.entity.connectedStateList
 import com.eiyooooo.adblink.util.QrCodeGenerator
 import com.eiyooooo.adblink.util.generateRandomString
 import com.eiyooooo.adblink.util.isReachableLocallySuspend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -40,6 +45,12 @@ object AdbManager {
     private var qrPairInfo: Pair<String, String>? = null
     private val _qrPairingSuccess = MutableStateFlow(false)
     val qrPairingSuccess: StateFlow<Boolean> = _qrPairingSuccess
+
+    private val _deviceConnectionStates = MutableStateFlow<Map<String, ConnectionState>>(emptyMap())
+    val deviceConnectionStates: StateFlow<Map<String, ConnectionState>> = _deviceConnectionStates
+
+    private val deviceConnections = mutableMapOf<String, AdbConnection>()
+    private val connectionJobs = mutableMapOf<String, Job>()
 
     fun init(): Boolean {
         if (initialized) {
@@ -120,7 +131,9 @@ object AdbManager {
                         DeviceRepository.addDevice(device)
                         Timber.d("Added device to repository via pairing: $serial")
                     } else {
-                        DeviceRepository.updateDevice(existingDevice.copy(tlsName = remotePeerInfo))
+                        DeviceRepository.updateDevice(existingDevice) {
+                            it.copy(tlsName = remotePeerInfo)
+                        }
                         Timber.d("Updated device in repository via pairing: $serial")
                     }
                 }
@@ -200,5 +213,157 @@ object AdbManager {
             }
         }
         return false
+    }
+
+    fun connectDevice(device: Device) {
+        if (_deviceConnectionStates.value[device.uuid] == ConnectionState.CONNECTING) {
+            return
+        }
+        connectionJobs[device.uuid]?.cancel()
+        connectionJobs[device.uuid] = adbScope.launch {
+            updateConnectionState(device.uuid, ConnectionState.CONNECTING)
+
+            try {
+                var connection: AdbConnection? = null
+                var connected = false
+
+                // Try USB connection first
+                if (device.usbDevice != null) {
+                    connection = tryCreateAndConnect("USB", device.uuid) {
+                        AdbConnection.create(usbManager, device.usbDevice, adbKeyPair)
+                    }
+                    if (connection != null) {
+                        connected = true
+                    }
+                }
+
+                // Try TLS connection if USB failed
+                if (!connected && device.tlsHostPort != null) {
+                    connection = tryCreateAndConnect("TLS", device.uuid) {
+                        AdbConnection.create(device.tlsHostPort.host, device.tlsHostPort.port, adbKeyPair)
+                    }
+                    if (connection != null) {
+                        connected = true
+                    }
+                }
+
+                // Try TCP connection if USB and TLS failed
+                if (!connected && device.tcpHostPort != null) {
+                    connection = tryCreateAndConnect("TCP", device.uuid) {
+                        AdbConnection.create(device.tcpHostPort.host, device.tcpHostPort.port, adbKeyPair)
+                    }
+                    if (connection != null) {
+                        connected = true
+                    }
+                }
+
+                if (connected && connection != null && connection.isConnectionEstablished) {
+                    deviceConnections[device.uuid] = connection
+                    val connectionState = when {
+                        connection.isUsbConnection -> ConnectionState.CONNECTED_USB
+                        connection.isTlsConnection() -> ConnectionState.CONNECTED_TLS
+                        connection.isTcpConnection() -> ConnectionState.CONNECTED_TCP
+                        else -> ConnectionState.DISCONNECTED
+                    }
+                    updateConnectionState(device.uuid, connectionState)
+                    Timber.d("Device ${device.uuid} connected successfully via ${connectionState.name}")
+                } else {
+                    connection?.close()
+                    updateConnectionState(device.uuid, ConnectionState.DISCONNECTED)
+                    Timber.w("All connection methods failed for device ${device.uuid}")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to connect device ${device.uuid}")
+                updateConnectionState(device.uuid, ConnectionState.DISCONNECTED)
+            }
+
+            connectionJobs.remove(device.uuid)
+        }
+    }
+
+    private suspend fun tryCreateAndConnect(
+        connectionType: String,
+        deviceUuid: String,
+        createConnection: () -> AdbConnection
+    ): AdbConnection? {
+        return withContext(Dispatchers.IO) {
+            try {
+                Timber.d("Attempting $connectionType connection for device $deviceUuid")
+                val connection = createConnection()
+                if (connection.connect()) {
+                    Timber.d("$connectionType connection successful for device $deviceUuid")
+                    connection
+                } else {
+                    Timber.d("$connectionType connection failed for device $deviceUuid")
+                    connection.close()
+                    null
+                }
+            } catch (e: Exception) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid")
+                null
+            }
+        }
+    }
+
+    fun reconnectDevice(oldDevice: Device, newDevice: Device) {
+        val currentConnection = deviceConnections[newDevice.uuid]
+        val currentState = _deviceConnectionStates.value[newDevice.uuid]
+
+        // Check if device connection method has changed or connection is broken
+        val isConnected = currentState in connectedStateList
+        val shouldReconnect = when {
+            currentConnection == null -> true
+            !isConnected -> true
+            !currentConnection.isConnected -> true
+            !currentConnection.isConnectionEstablished -> true
+            else -> {
+                // Check if the connection method preferences have changed
+                // Priority: USB > TLS > TCP, so if higher priority method is now available, reconnect
+                when {
+                    // If USB is available but we're not using USB connection, reconnect
+                    newDevice.usbDevice != null && !currentConnection.isUsbConnection -> true
+                    // If USB is not available but TLS is available and we're using TCP, reconnect
+                    newDevice.usbDevice == null && newDevice.tlsHostPort != null &&
+                            !currentConnection.isUsbConnection && !currentConnection.isTlsConnection() -> true
+                    // If TLS address changed and we're using TLS connection, reconnect
+                    oldDevice.tlsHostPort != newDevice.tlsHostPort &&
+                            currentConnection.isTlsConnection() -> true
+                    // If TCP address changed and we're using TCP connection, reconnect
+                    oldDevice.tcpHostPort != newDevice.tcpHostPort &&
+                            currentConnection.isTcpConnection() -> true
+
+                    else -> false
+                }
+            }
+        }
+
+        if (shouldReconnect) {
+            Timber.d("Device connection needs update for ${newDevice.uuid}, reconnecting")
+            disconnectDevice(newDevice.uuid)
+            connectDevice(newDevice)
+        } else {
+            Timber.d("Device connection unchanged for ${newDevice.uuid}, keeping existing connection")
+        }
+    }
+
+    fun disconnectDevice(deviceUuid: String) {
+        connectionJobs.remove(deviceUuid)?.cancel()
+        deviceConnections.remove(deviceUuid)?.let { connection ->
+            adbScope.launch(Dispatchers.IO) {
+                try {
+                    connection.close()
+                } catch (e: Exception) {
+                    Timber.e(e, "Error closing connection for device $deviceUuid")
+                }
+            }
+        }
+        Timber.d("Disconnected device $deviceUuid")
+        updateConnectionState(deviceUuid, ConnectionState.DISCONNECTED)
+    }
+
+    private fun updateConnectionState(deviceUuid: String, state: ConnectionState) {
+        _deviceConnectionStates.update {
+            it + (deviceUuid to state)
+        }
     }
 }

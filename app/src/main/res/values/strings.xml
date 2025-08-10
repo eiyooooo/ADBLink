@@ -61,8 +61,10 @@
     <string name="device_serial">Serial: %1$s</string>
     <string name="connection_info">Connection info: %1$s</string>
     <string name="connected_via_usb">Connected via USB</string>
-    <string name="connected_via_tcp">Connected via TCP (%1$s)</string>
     <string name="connected_via_tls">Connected via ADB TLS (%1$s)</string>
+    <string name="connected_via_tls_no_host_port">Connected via ADB TLS</string>
+    <string name="connected_via_tcp">Connected via TCP (%1$s)</string>
+    <string name="connected_via_tcp_no_host_port">Connected via TCP</string>
     <string name="connection_disconnected">Disconnected</string>
     <string name="connection_connecting">Connecting…</string>
     <string name="connection_connecting_permission">Connecting, please pay attention to the ADB authorization dialog on the device</string>
