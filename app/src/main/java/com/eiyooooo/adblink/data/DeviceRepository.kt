@@ -3,12 +3,17 @@ package com.eiyooooo.adblink.data
 import android.hardware.usb.UsbDevice
 import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.application
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 
 object DeviceRepository {
+
+    private var hasTriggeredColdStartConnection = false
 
     private val database = DeviceDatabase.getInstance(application)
 
@@ -74,5 +79,22 @@ object DeviceRepository {
 
     fun clearAllUsbDevices() {
         usbDeviceMap.value = emptyMap()
+    }
+
+    suspend fun reconnectAllDevices() {
+        val currentDevices = devices.first()
+        currentDevices.forEach { device ->
+            AdbManager.connectDevice(device)
+        }
+    }
+
+    suspend fun connectAllDevicesOnColdStart() {
+        if (hasTriggeredColdStartConnection) {
+            return
+        }
+        hasTriggeredColdStartConnection = true
+        Timber.d("Connecting all devices on cold start")
+        delay(1000)
+        reconnectAllDevices()
     }
 }

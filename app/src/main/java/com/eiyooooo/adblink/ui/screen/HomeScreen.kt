@@ -1,79 +1,113 @@
 package com.eiyooooo.adblink.ui.screen
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.DevicesOther
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.data.Device
+import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.ui.component.DeviceCard
+import com.eiyooooo.adblink.ui.dialog.DeleteDeviceDialog
+import com.eiyooooo.adblink.ui.dialog.EditDeviceDialog
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(widthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact, navController: NavController) {
-    val context = LocalContext.current
+fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
     var isRefreshing by remember { mutableStateOf(false) }
     val pullRefreshState = rememberPullToRefreshState()
     val coroutineScope = rememberCoroutineScope()
 
-    // 加载设备列表
-//    LaunchedEffect(key1 = true) {
-//        ComposeDeviceManager.loadDevices()
-//    }
+    val devices by DeviceRepository.devices.collectAsState(initial = emptyList())
 
-    // 处理下拉刷新
-//    LaunchedEffect(isRefreshing) {
-//        if (isRefreshing) {
-//            isRefreshing = true
-//            ComposeDeviceManager.loadDevices()
-//            isRefreshing = false
-////            pullRefreshState.endRefresh()
-//        }
-//    }
+    var deviceToEdit by remember { mutableStateOf<Device?>(null) }
+    var deviceToDelete by remember { mutableStateOf<Device?>(null) }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-//                    PublicTools.createAddDeviceView(
-//                        context,
-//                        Device.getDefaultDevice(UUID.randomUUID().toString(), Device.TYPE_NORMAL),
-//                        null
-//                    ).show()
-                }
+    LaunchedEffect(Unit) {
+        DeviceRepository.connectAllDevicesOnColdStart()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        if (devices.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 64.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Device")
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DevicesOther,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.no_devices),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.no_devices_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
+        } else {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = {
                     coroutineScope.launch {
-//                        pullRefreshState.startRefresh()
+                        isRefreshing = true
+                        DeviceRepository.reconnectAllDevices()
+                        delay(1500)
+                        isRefreshing = false
                     }
                 },
                 state = pullRefreshState,
@@ -81,103 +115,81 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compa
                     .fillMaxWidth()
                     .weight(1f),
             ) {
+                when (widthSizeClass) {
+                    WindowWidthSizeClass.Compact -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(devices) { device ->
+                                DeviceCard(
+                                    device = device,
+                                    onEditClick = { deviceToEdit = it },
+                                    onDeleteClick = { deviceToDelete = it }
+                                )
+                            }
+                        }
+                    }
+
+                    WindowWidthSizeClass.Medium, WindowWidthSizeClass.Expanded -> {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 280.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(devices) { device ->
+                                DeviceCard(
+                                    device = device,
+                                    onEditClick = { deviceToEdit = it },
+                                    onDeleteClick = { deviceToDelete = it }
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(devices) { device ->
+                                DeviceCard(
+                                    device = device,
+                                    onEditClick = { deviceToEdit = it },
+                                    onDeleteClick = { deviceToDelete = it }
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-//                when (widthSizeClass) {
-//                    WindowWidthSizeClass.Compact -> {
-//                        // 窄屏使用列表布局
-//                        LazyColumn(
-//                            modifier = Modifier.fillMaxWidth(),
-//                            verticalArrangement = Arrangement.spacedBy(8.dp)
-//                        ) {
-//                            items(ComposeDeviceManager.devices) { device ->
-//                                DeviceCard(device = device)
-//                            }
-//                        }
-//                    }
-//
-//                    WindowWidthSizeClass.Medium -> {
-//                        // 中等宽度使用2列网格
-//                        LazyVerticalGrid(
-//                            columns = GridCells.Fixed(2),
-//                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-//                            verticalArrangement = Arrangement.spacedBy(8.dp)
-//                        ) {
-//                            items(ComposeDeviceManager.devices) { device ->
-//                                DeviceCard(device = device)
-//                            }
-//                        }
-//                    }
-//
-//                    else -> {
-//                        // 宽屏使用3列网格
-//                        LazyVerticalGrid(
-//                            columns = GridCells.Fixed(3),
-//                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-//                            verticalArrangement = Arrangement.spacedBy(8.dp)
-//                        ) {
-//                            items(ComposeDeviceManager.devices) { device ->
-//                                DeviceCard(device = device)
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//@Composable
-//fun DeviceCard(device: Device) {
-//    val context = LocalContext.current
-//    val connectHelper = remember { ConnectHelper(context) }
-//
-//    Card(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .clickable {
-////                connectHelper.startConnect(device)
-//            },
-//        colors = CardDefaults.cardColors(
-//            containerColor = MaterialTheme.colorScheme.surfaceVariant
-//        )
-//    ) {
-//        Column(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(16.dp)
-//        ) {
-//            Text(
-//                text = device.name,
-//                fontSize = 18.sp,
-//                fontWeight = FontWeight.Bold,
-//                color = MaterialTheme.colorScheme.onSurfaceVariant
-//            )
-//
-//            Spacer(modifier = Modifier.height(4.dp))
-//
-//            Text(
-//                text = "IP: ${device.address}",
-//                fontSize = 14.sp,
-//                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-//            )
-//
-//            Text(
-//                text = "连接方式: ${getConnectionTypeText(device.type)}",
-//                fontSize = 14.sp,
-//                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-//            )
-//        }
-//    }
-//}
-//
-//// 辅助函数：根据设备类型返回连接方式文本
-//fun getConnectionTypeText(type: Int): String {
-//    return when (type) {
-//        Device.TYPE_NORMAL -> "常规连接"
-////        Device.TYPE_ADB -> "ADB连接"
-////        Device.TYPE_WIFI -> "WIFI连接"
-//        else -> "未知连接方式"
-//    }
+
+    deviceToEdit?.let { currentDevice ->
+        EditDeviceDialog(
+            device = currentDevice,
+            onDismiss = { deviceToEdit = null },
+            onSave = { updatedDevice ->
+                coroutineScope.launch {
+                    DeviceRepository.updateDevice(currentDevice) {
+                        updatedDevice
+                    }
+                }
+                deviceToEdit = null
+            }
+        )
+    }
+
+    deviceToDelete?.let { currentDevice ->
+        DeleteDeviceDialog(
+            deviceName = currentDevice.name,
+            onDismiss = { deviceToDelete = null },
+            onConfirm = {
+                coroutineScope.launch {
+                    DeviceRepository.removeDevice(currentDevice.uuid)
+                }
+                deviceToDelete = null
+            }
+        )
+    }
 }

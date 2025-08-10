@@ -44,7 +44,7 @@ fun AppNavHost(
             exitTransition = { fadeOut(animationSpec = tween(300)) }
         ) {
             composable(route = NavRoutes.HOME) {
-                HomeScreen(widthSizeClass, navController)
+                HomeScreen(widthSizeClass)
             }
             composable(route = NavRoutes.MANAGE) {
                 ManageScreen(widthSizeClass)
