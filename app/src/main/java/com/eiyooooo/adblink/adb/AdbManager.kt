@@ -293,6 +293,11 @@ object AdbManager {
                     }
                     updateConnectionState(device.uuid, connectionState)
                     Timber.d("Device ${device.uuid} connected successfully via ${connectionState.name}")
+
+                    // Identify unidentified device
+                    if (device.isUnidentified) {
+                        identifyDevice(device, connection)
+                    }
                 } else {
                     connection?.close()
                     updateConnectionState(device.uuid, lastFailureReason)
@@ -431,6 +436,34 @@ object AdbManager {
     private fun updateConnectionState(deviceUuid: String, state: ConnectionState) {
         _deviceConnectionStates.update {
             it + (deviceUuid to state)
+        }
+    }
+
+    private fun identifyDevice(device: Device, connection: AdbConnection) {
+        adbScope.launch {
+            try {
+                Timber.d("Identifying device ${device.uuid}")
+
+                val deviceBrand = connection.runAdbCmd("getprop ro.product.brand").trim()
+                val deviceName = connection.runAdbCmd("getprop ro.product.model").trim()
+                val deviceSerial = connection.runAdbCmd("getprop ro.serialno").trim()
+
+                Timber.d("Device identification for ${device.uuid}: brand=$deviceBrand, name=$deviceName, serial=$deviceSerial")
+
+                val updatedDevice = device.copy(
+                    isUnidentified = false,
+                    deviceBrand = deviceBrand.takeIf { it.isNotEmpty() } ?: device.deviceBrand,
+                    deviceName = deviceName.takeIf { it.isNotEmpty() } ?: device.deviceName,
+                    deviceSerial = deviceSerial.takeIf { it.isNotEmpty() } ?: device.deviceSerial,
+                    name = "$deviceBrand $deviceName".trim().takeIf { it.isNotEmpty() } ?: device.name
+                )
+
+                DeviceRepository.updateDevice(device) { updatedDevice }
+                Timber.i("Successfully identified device ${device.uuid}: $deviceBrand $deviceName")
+
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to identify device ${device.uuid}")
+            }
         }
     }
 }
