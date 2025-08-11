@@ -314,19 +314,37 @@ object AdbManager {
     ): ConnectionResult {
         return withContext(Dispatchers.IO) {
             try {
-                Timber.d("Attempting $connectionType connection for device $deviceUuid")
+                Timber.d("Attempting $connectionType connection for device $deviceUuid (first attempt with auth check)")
                 val connection = createConnection()
-                if (connection.connect(Preferences.adbConnectionTimeout.toLong(), TimeUnit.SECONDS, false)) {
+
+                // First attempt: check if authorization is required
+                if (connection.connect(Preferences.adbConnectionTimeout.toLong(), TimeUnit.SECONDS, true)) {
                     Timber.d("$connectionType connection successful for device $deviceUuid")
                     ConnectionResult.Success(connection)
                 } else {
-                    Timber.d("$connectionType connection failed for device $deviceUuid - timeout")
+                    Timber.d("$connectionType connection failed for device $deviceUuid - timeout on first attempt")
                     connection.close()
                     ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_TIMEOUT)
                 }
             } catch (e: AdbAuthenticationFailedException) {
-                Timber.d(e, "$connectionType connection failed for device $deviceUuid - authentication failed")
-                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_UNAUTHORIZED)
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - authentication required, trying second attempt")
+                // Authorization required, try second attempt
+                try {
+                    val connection = createConnection()
+                    updateConnectionState(deviceUuid, ConnectionState.CONNECTING_AWAITING_AUTHORIZATION)
+
+                    if (connection.connect(Preferences.adbConnectionTimeout.toLong(), TimeUnit.SECONDS, false)) {
+                        Timber.d("$connectionType connection successful for device $deviceUuid on second attempt")
+                        ConnectionResult.Success(connection)
+                    } else {
+                        Timber.d("$connectionType connection failed for device $deviceUuid - timeout on second attempt")
+                        connection.close()
+                        ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_UNAUTHORIZED)
+                    }
+                } catch (e2: Exception) {
+                    Timber.d(e2, "$connectionType second connection attempt failed for device $deviceUuid")
+                    ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_UNAUTHORIZED)
+                }
             } catch (e: AdbPairingRequiredException) {
                 Timber.d(e, "$connectionType connection failed for device $deviceUuid - pairing required")
                 ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED)

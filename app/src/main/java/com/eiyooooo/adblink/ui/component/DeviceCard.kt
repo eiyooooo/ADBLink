@@ -28,12 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,7 +39,6 @@ import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.entity.ConnectionState
-import kotlinx.coroutines.delay
 
 @Composable
 fun DeviceCard(
@@ -54,29 +49,13 @@ fun DeviceCard(
     val connectionStates by AdbManager.deviceConnectionStates.collectAsState()
     val connectionState = connectionStates[device.uuid] ?: ConnectionState.DISCONNECTED
 
-    var showPermissionHint by remember { mutableStateOf(false) }
-
-    LaunchedEffect(connectionState) {
-        when (connectionState) {
-            ConnectionState.CONNECTING -> {
-                showPermissionHint = false
-                delay(2000)
-                showPermissionHint = true
-            }
-
-            else -> {
-                showPermissionHint = false
-            }
-        }
-    }
-
     val (icon, backgroundColor) = when (connectionState) {
         ConnectionState.DISCONNECTED -> Pair(
             Icons.Filled.LinkOff,
             MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
         )
 
-        ConnectionState.CONNECTING -> Pair(
+        ConnectionState.CONNECTING, ConnectionState.CONNECTING_AWAITING_AUTHORIZATION -> Pair(
             Icons.Filled.Sync,
             MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
         )
@@ -102,16 +81,9 @@ fun DeviceCard(
     }
 
     val connectionStatusText = when (connectionState) {
-        ConnectionState.CONNECTING -> {
-            if (showPermissionHint) {
-                stringResource(R.string.connection_connecting_permission)
-            } else {
-                stringResource(R.string.connection_connecting)
-            }
-        }
-
+        ConnectionState.CONNECTING -> stringResource(R.string.connection_connecting)
+        ConnectionState.CONNECTING_AWAITING_AUTHORIZATION -> stringResource(R.string.connection_awaiting_permission)
         ConnectionState.CONNECTED_USB -> stringResource(R.string.connected_via_usb)
-
         ConnectionState.CONNECTED_TLS -> {
             device.tlsHostPort?.let {
                 stringResource(R.string.connected_via_tls, "${it.host}:${it.port}")
@@ -125,7 +97,6 @@ fun DeviceCard(
         }
 
         ConnectionState.DISCONNECTED -> stringResource(R.string.connection_disconnected)
-
         ConnectionState.CONNECTION_FAILED_TIMEOUT -> stringResource(R.string.connection_failed_timeout)
         ConnectionState.CONNECTION_FAILED_UNAUTHORIZED -> stringResource(R.string.connection_failed_unauthorized)
         ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED -> stringResource(R.string.connection_failed_pairing_required)
@@ -159,10 +130,11 @@ fun DeviceCard(
                         contentDescription = stringResource(R.string.connection_status_icon_description),
                         tint = when (connectionState) {
                             ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.error
-                            ConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary
+                            ConnectionState.CONNECTING, ConnectionState.CONNECTING_AWAITING_AUTHORIZATION -> MaterialTheme.colorScheme.tertiary
                             ConnectionState.CONNECTED_USB,
                             ConnectionState.CONNECTED_TLS,
                             ConnectionState.CONNECTED_TCP -> MaterialTheme.colorScheme.primary
+
                             ConnectionState.CONNECTION_FAILED_TIMEOUT,
                             ConnectionState.CONNECTION_FAILED_UNAUTHORIZED,
                             ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED,
@@ -216,7 +188,7 @@ fun DeviceCard(
                     .padding(top = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (!device.isUnidentified && connectionState != ConnectionState.CONNECTING) {
+                if (!device.isUnidentified && connectionState != ConnectionState.CONNECTING && connectionState != ConnectionState.CONNECTING_AWAITING_AUTHORIZATION) {
                     Text(
                         text = stringResource(R.string.device_brand, device.deviceBrand),
                         style = MaterialTheme.typography.bodyMedium

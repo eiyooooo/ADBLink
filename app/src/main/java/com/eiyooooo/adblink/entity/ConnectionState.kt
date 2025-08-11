@@ -3,6 +3,7 @@ package com.eiyooooo.adblink.entity
 enum class ConnectionState {
     DISCONNECTED,
     CONNECTING,
+    CONNECTING_AWAITING_AUTHORIZATION,
     CONNECTED_USB,
     CONNECTED_TLS,
     CONNECTED_TCP,

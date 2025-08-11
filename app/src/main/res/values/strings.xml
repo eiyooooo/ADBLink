@@ -68,7 +68,7 @@
     <string name="connected_via_tcp_no_host_port">Connected via TCP</string>
     <string name="connection_disconnected">Disconnected</string>
     <string name="connection_connecting">Connecting…</string>
-    <string name="connection_connecting_permission">Connecting, please pay attention to the ADB authorization dialog on the device</string>
+    <string name="connection_awaiting_permission">Please authorize ADB debugging on device</string>
     <string name="connection_failed_timeout">Connection timeout</string>
     <string name="connection_failed_unauthorized">Unauthorized (please check ADB authorization on device)</string>
     <string name="connection_failed_pairing_required">Pairing required</string>
