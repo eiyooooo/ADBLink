@@ -208,9 +208,7 @@ public class LocalServices {
                         throw new IllegalArgumentException("Arguments for inline shell cannot contain double" +
                                 " quotations.");
                     }
-                    if (arg.contains(" ")) {
-                        destination.append("\"").append(Objects.requireNonNull(arg)).append("\"");
-                    } else destination.append(Objects.requireNonNull(arg));
+                    destination.append(Objects.requireNonNull(arg));
                 }
                 break;
             case FILE:
