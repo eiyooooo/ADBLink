@@ -143,6 +143,12 @@
     <string name="full_screen_description">关闭后全屏模式时不隐藏本机导航栏</string>
     <string name="enable_log">开启日志输出</string>
     <string name="enable_log_description">开启后输出日志以供调试</string>
+    <string name="adb_connection_timeout">ADB连接超时时间</string>
+    <string name="adb_connection_timeout_description">设置ADB连接尝试的超时时间</string>
+    <string name="timeout_5_seconds">5秒</string>
+    <string name="timeout_10_seconds">10秒</string>
+    <string name="timeout_20_seconds">20秒</string>
+    <string name="timeout_30_seconds">30秒</string>
     <string name="view_log">查看日志</string>
     <string name="view_local_ip">查看本机IP</string>
     <string name="current_adb_key">当前ADB密钥名称: %1$s</string>

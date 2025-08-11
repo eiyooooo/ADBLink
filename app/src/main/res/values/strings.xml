@@ -143,6 +143,12 @@
     <string name="full_screen_description">Do not hide the local navigation bar in full screen mode when turned off</string>
     <string name="enable_log">"Enable log output</string>
     <string name="enable_log_description">Enable log output for debugging</string>
+    <string name="adb_connection_timeout">ADB connection timeout</string>
+    <string name="adb_connection_timeout_description">Set the timeout for ADB connection attempts</string>
+    <string name="timeout_5_seconds">5 seconds</string>
+    <string name="timeout_10_seconds">10 seconds</string>
+    <string name="timeout_20_seconds">20 seconds</string>
+    <string name="timeout_30_seconds">30 seconds</string>
     <string name="view_log">View log</string>
     <string name="view_local_ip">View local IP</string>
     <string name="current_adb_key">Current ADB key name: %1$s</string>

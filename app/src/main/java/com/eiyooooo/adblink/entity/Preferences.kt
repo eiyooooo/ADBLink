@@ -174,4 +174,11 @@ object Preferences {
 
     val enableLogFlow
         get() = flowSharedPreferences.getBoolean("enableLog", BuildConfig.DEBUG).asFlow()
+
+    var adbConnectionTimeout
+        get() = sharedPreferences.get("adbConnectionTimeout", 10)
+        set(value) = sharedPreferences.put("adbConnectionTimeout", value)
+
+    val adbConnectionTimeoutFlow
+        get() = flowSharedPreferences.getInt("adbConnectionTimeout", 10).asFlow()
 }

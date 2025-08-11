@@ -11,6 +11,7 @@ import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.entity.ConnectionState
+import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.entity.SystemServices.usbManager
 import com.eiyooooo.adblink.entity.connectedStateList
 import com.eiyooooo.adblink.util.QrCodeGenerator
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 object AdbManager {
 
@@ -290,7 +292,7 @@ object AdbManager {
             try {
                 Timber.d("Attempting $connectionType connection for device $deviceUuid")
                 val connection = createConnection()
-                if (connection.connect()) {
+                if (connection.connect(Preferences.adbConnectionTimeout.toLong(), TimeUnit.SECONDS, false)) {
                     Timber.d("$connectionType connection successful for device $deviceUuid")
                     connection
                 } else {

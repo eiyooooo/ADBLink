@@ -53,6 +53,7 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
     val setFullScreen by Preferences.setFullScreenFlow.collectAsState(initial = Preferences.setFullScreen)
     val enableLog by Preferences.enableLogFlow.collectAsState(initial = Preferences.enableLog)
     val appLanguage by Preferences.appLanguageFlow.collectAsState(initial = Preferences.appLanguage)
+    val adbConnectionTimeout by Preferences.adbConnectionTimeoutFlow.collectAsState(initial = Preferences.adbConnectionTimeout)
 
     var showRegenerateKeyDialog by remember { mutableStateOf(false) }
 
@@ -182,6 +183,36 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
                     FLog.stop()
                 }
                 Preferences.enableLog = it
+            }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+        val timeoutList = listOf(
+            stringResource(R.string.timeout_5_seconds),
+            stringResource(R.string.timeout_10_seconds),
+            stringResource(R.string.timeout_20_seconds),
+            stringResource(R.string.timeout_30_seconds)
+        )
+        val timeoutValues = listOf(5, 10, 20, 30)
+        val currentTimeoutIndex = timeoutValues.indexOf(adbConnectionTimeout).let {
+            if (it == -1) 1 else it // Default to 10 seconds if not found
+        }
+
+        SettingDropdownItem(
+            title = stringResource(R.string.adb_connection_timeout),
+            description = stringResource(R.string.adb_connection_timeout_description),
+            currentValue = timeoutList[currentTimeoutIndex],
+            options = timeoutList,
+            onValueChange = { selectedTimeout ->
+                val timeoutValue = when (selectedTimeout) {
+                    context.getString(R.string.timeout_5_seconds) -> 5
+                    context.getString(R.string.timeout_10_seconds) -> 10
+                    context.getString(R.string.timeout_20_seconds) -> 20
+                    context.getString(R.string.timeout_30_seconds) -> 30
+                    else -> 10
+                }
+                Preferences.adbConnectionTimeout = timeoutValue
             }
         )
 
