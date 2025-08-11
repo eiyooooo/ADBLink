@@ -28,8 +28,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 object AdbManager {
 
@@ -227,41 +231,61 @@ object AdbManager {
 
             try {
                 var connection: AdbConnection? = null
+                var connectionState: ConnectionState
                 var connected = false
+                var lastFailureReason: ConnectionState = ConnectionState.CONNECTION_FAILED_UNKNOWN
 
                 // Try USB connection first
                 if (device.usbDevice != null) {
-                    connection = tryCreateAndConnect("USB", device.uuid) {
+                    when (val result = tryCreateAndConnect("USB", device.uuid) {
                         AdbConnection.create(usbManager, device.usbDevice, adbKeyPair)
-                    }
-                    if (connection != null) {
-                        connected = true
+                    }) {
+                        is ConnectionResult.Success -> {
+                            connection = result.connection
+                            connected = true
+                        }
+
+                        is ConnectionResult.Failure -> {
+                            lastFailureReason = result.reason
+                        }
                     }
                 }
 
                 // Try TLS connection if USB failed
                 if (!connected && device.tlsHostPort != null) {
-                    connection = tryCreateAndConnect("TLS", device.uuid) {
+                    when (val result = tryCreateAndConnect("TLS", device.uuid) {
                         AdbConnection.create(device.tlsHostPort.host, device.tlsHostPort.port, adbKeyPair)
-                    }
-                    if (connection != null) {
-                        connected = true
+                    }) {
+                        is ConnectionResult.Success -> {
+                            connection = result.connection
+                            connected = true
+                        }
+
+                        is ConnectionResult.Failure -> {
+                            lastFailureReason = result.reason
+                        }
                     }
                 }
 
                 // Try TCP connection if USB and TLS failed
                 if (!connected && device.tcpHostPort != null) {
-                    connection = tryCreateAndConnect("TCP", device.uuid) {
+                    when (val result = tryCreateAndConnect("TCP", device.uuid) {
                         AdbConnection.create(device.tcpHostPort.host, device.tcpHostPort.port, adbKeyPair)
-                    }
-                    if (connection != null) {
-                        connected = true
+                    }) {
+                        is ConnectionResult.Success -> {
+                            connection = result.connection
+                            connected = true
+                        }
+
+                        is ConnectionResult.Failure -> {
+                            lastFailureReason = result.reason
+                        }
                     }
                 }
 
                 if (connected && connection != null && connection.isConnectionEstablished) {
                     deviceConnections[device.uuid] = connection
-                    val connectionState = when {
+                    connectionState = when {
                         connection.isUsbConnection -> ConnectionState.CONNECTED_USB
                         connection.isTlsConnection() -> ConnectionState.CONNECTED_TLS
                         connection.isTcpConnection() -> ConnectionState.CONNECTED_TCP
@@ -271,12 +295,12 @@ object AdbManager {
                     Timber.d("Device ${device.uuid} connected successfully via ${connectionState.name}")
                 } else {
                     connection?.close()
-                    updateConnectionState(device.uuid, ConnectionState.DISCONNECTED)
-                    Timber.w("All connection methods failed for device ${device.uuid}")
+                    updateConnectionState(device.uuid, lastFailureReason)
+                    Timber.w("All connection methods failed for device ${device.uuid}, last failure: ${lastFailureReason.name}")
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to connect device ${device.uuid}")
-                updateConnectionState(device.uuid, ConnectionState.DISCONNECTED)
+                updateConnectionState(device.uuid, ConnectionState.CONNECTION_FAILED_UNKNOWN)
             }
 
             connectionJobs.remove(device.uuid)
@@ -287,24 +311,47 @@ object AdbManager {
         connectionType: String,
         deviceUuid: String,
         createConnection: () -> AdbConnection
-    ): AdbConnection? {
+    ): ConnectionResult {
         return withContext(Dispatchers.IO) {
             try {
                 Timber.d("Attempting $connectionType connection for device $deviceUuid")
                 val connection = createConnection()
                 if (connection.connect(Preferences.adbConnectionTimeout.toLong(), TimeUnit.SECONDS, false)) {
                     Timber.d("$connectionType connection successful for device $deviceUuid")
-                    connection
+                    ConnectionResult.Success(connection)
                 } else {
-                    Timber.d("$connectionType connection failed for device $deviceUuid")
+                    Timber.d("$connectionType connection failed for device $deviceUuid - timeout")
                     connection.close()
-                    null
+                    ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_TIMEOUT)
                 }
+            } catch (e: AdbAuthenticationFailedException) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - authentication failed")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_UNAUTHORIZED)
+            } catch (e: AdbPairingRequiredException) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - pairing required")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED)
+            } catch (e: SocketTimeoutException) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - socket timeout")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_TIMEOUT)
+            } catch (e: TimeoutException) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - timeout")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_TIMEOUT)
+            } catch (e: ConnectException) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - connect exception")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE)
+            } catch (e: UnknownHostException) {
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - unknown host")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE)
             } catch (e: Exception) {
-                Timber.d(e, "$connectionType connection failed for device $deviceUuid")
-                null
+                Timber.d(e, "$connectionType connection failed for device $deviceUuid - unknown error")
+                ConnectionResult.Failure(ConnectionState.CONNECTION_FAILED_UNKNOWN)
             }
         }
+    }
+
+    sealed class ConnectionResult {
+        data class Success(val connection: AdbConnection) : ConnectionResult()
+        data class Failure(val reason: ConnectionState) : ConnectionResult()
     }
 
     fun reconnectDevice(oldDevice: Device, newDevice: Device) {

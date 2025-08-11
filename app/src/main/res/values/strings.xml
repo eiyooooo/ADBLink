@@ -69,6 +69,11 @@
     <string name="connection_disconnected">Disconnected</string>
     <string name="connection_connecting">Connecting…</string>
     <string name="connection_connecting_permission">Connecting, please pay attention to the ADB authorization dialog on the device</string>
+    <string name="connection_failed_timeout">Connection timeout</string>
+    <string name="connection_failed_unauthorized">Unauthorized (please check ADB authorization on device)</string>
+    <string name="connection_failed_pairing_required">Pairing required</string>
+    <string name="connection_failed_host_unreachable">Host unreachable</string>
+    <string name="connection_failed_unknown">Connection failed</string>
     <string name="unidentified_device">Unidentified Device</string>
     <string name="edit_device">Edit Device</string>
     <string name="edit_device_instructions">ADB TCP and ADB TLS connections will first attempt to connect using the automatically discovered host address.\nIf the device cannot be discovered automatically, it will try to connect using the manually entered host address.</string>

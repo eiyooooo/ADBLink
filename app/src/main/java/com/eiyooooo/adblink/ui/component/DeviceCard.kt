@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -89,6 +90,15 @@ fun DeviceCard(
             Icons.Filled.Wifi,
             MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
         )
+
+        ConnectionState.CONNECTION_FAILED_TIMEOUT,
+        ConnectionState.CONNECTION_FAILED_UNAUTHORIZED,
+        ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED,
+        ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE,
+        ConnectionState.CONNECTION_FAILED_UNKNOWN -> Pair(
+            Icons.Filled.Warning,
+            MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+        )
     }
 
     val connectionStatusText = when (connectionState) {
@@ -115,6 +125,12 @@ fun DeviceCard(
         }
 
         ConnectionState.DISCONNECTED -> stringResource(R.string.connection_disconnected)
+
+        ConnectionState.CONNECTION_FAILED_TIMEOUT -> stringResource(R.string.connection_failed_timeout)
+        ConnectionState.CONNECTION_FAILED_UNAUTHORIZED -> stringResource(R.string.connection_failed_unauthorized)
+        ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED -> stringResource(R.string.connection_failed_pairing_required)
+        ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE -> stringResource(R.string.connection_failed_host_unreachable)
+        ConnectionState.CONNECTION_FAILED_UNKNOWN -> stringResource(R.string.connection_failed_unknown)
     }
 
     Card(
@@ -147,6 +163,11 @@ fun DeviceCard(
                             ConnectionState.CONNECTED_USB,
                             ConnectionState.CONNECTED_TLS,
                             ConnectionState.CONNECTED_TCP -> MaterialTheme.colorScheme.primary
+                            ConnectionState.CONNECTION_FAILED_TIMEOUT,
+                            ConnectionState.CONNECTION_FAILED_UNAUTHORIZED,
+                            ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED,
+                            ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE,
+                            ConnectionState.CONNECTION_FAILED_UNKNOWN -> MaterialTheme.colorScheme.error
                         }
                     )
                 }

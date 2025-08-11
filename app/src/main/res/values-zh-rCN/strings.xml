@@ -69,6 +69,11 @@
     <string name="connection_disconnected">未连接</string>
     <string name="connection_connecting">连接中…</string>
     <string name="connection_connecting_permission">连接中，请注意设备的ADB授权弹窗</string>
+    <string name="connection_failed_timeout">连接超时</string>
+    <string name="connection_failed_unauthorized">未授权（请检查设备ADB授权）</string>
+    <string name="connection_failed_pairing_required">需要配对</string>
+    <string name="connection_failed_host_unreachable">主机不可达</string>
+    <string name="connection_failed_unknown">连接失败</string>
     <string name="unidentified_device">未初始化设备</string>
     <string name="edit_device">编辑设备</string>
     <string name="edit_device_instructions">ADB TCP 及 ADB TLS 连接将首先尝试使用自动发现的主机地址进行连接。\n如果设备未能自动发现，则尝试使用手动输入的主机地址进行连接。</string>
