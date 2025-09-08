@@ -47,8 +47,29 @@
     <string name="host_address_port">主机地址:端口</string>
 
     <string name="guide">指南</string>
-    <string name="pair">配对</string>
+
+    <string name="discovered_device_icon_description">发现设备图标</string>
+    <string name="discovered_connect_devices_banner">发现 %1$d 个可连接设备</string>
+    <string name="discovered_pairing_devices_banner">发现 %1$d 个可配对设备</string>
+    <string name="view_discovered_devices">查看设备</string>
     <string name="add_device">添加设备</string>
+    <string name="select_ip_address">选择 IP 地址</string>
+    <string name="select_ip_address_placeholder">请选择一个 IP 地址</string>
+    <string name="view_details">查看详情</string>
+    <string name="device_details">设备详情</string>
+    <string name="device_serial_label">序列号</string>
+    <string name="device_port_label">端口</string>
+    <string name="service_name_label">服务名称</string>
+    <string name="available_addresses_label">可用地址</string>
+    <string name="addresses_count">个地址</string>
+    <string name="testing_latency">延迟测试中…</string>
+    <string name="selected_address">已选择: %1$s</string>
+    <string name="add_device_to_list">添加到设备列表</string>
+    <string name="unreachable">无法连接</string>
+    <string name="connection_type_tcp">TCP 连接</string>
+    <string name="connection_type_tls_connect">TLS 连接</string>
+    <string name="connection_type_tls_pairing">TLS 配对</string>
+    <string name="pair">配对</string>
     <string name="device_added">已添加设备，将尝试连接。</string>
     <string name="pairing">配对中…</string>
     <string name="pairing_failed">配对失败</string>
@@ -77,6 +98,8 @@
     <string name="unidentified_device">未初始化设备</string>
     <string name="edit_device">编辑设备</string>
     <string name="edit_device_instructions">ADB TCP 及 ADB TLS 连接将首先尝试使用自动发现的主机地址进行连接。\n如果设备未能自动发现，则尝试使用手动输入的主机地址进行连接。</string>
+    <string name="device_information">设备信息</string>
+    <string name="connection_configuration">连接配置</string>
     <string name="device_name_label">设备名称</string>
     <string name="adb_tcp_manual_address">ADB TCP 手动地址</string>
     <string name="adb_tls_manual_address">ADB TLS 手动地址</string>
@@ -100,6 +123,11 @@
     <string name="save">保存</string>
     <string name="saved">已保存</string>
     <string name="save_failed">保存失败</string>
+    <string name="device_info_updated">设备信息已更新</string>
+    <string name="device_not_found">未找到设备</string>
+    <string name="device_not_found_message">找不到所请求的设备。它可能已被移除或链接无效。</string>
+    <string name="saving">保存中…</string>
+    <string name="adding_device">添加设备中…</string>
 
     <string name="cast_max_size">最大大小</string>
     <string name="cast_max_size_description">设置画面长或宽的最大大小</string>
@@ -184,4 +212,5 @@
 
     <string name="confirm">确认</string>
     <string name="cancel">取消</string>
+    <string name="close">关闭</string>
 </resources>

@@ -2,12 +2,15 @@ package com.eiyooooo.adblink.util
 
 import com.eiyooooo.adblink.data.HostPort
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
+import java.net.Socket
+import kotlin.system.measureTimeMillis
 
 fun getIp(): Pair<ArrayList<String>, ArrayList<String>> {
     val ipv4Addresses = ArrayList<String>()
@@ -84,4 +87,113 @@ fun String.parseHostPort(): HostPort? {
     if (!host.isValidHostAddress() || !port.isValidPort()) return null
 
     return HostPort(host, port.toInt())
+}
+
+suspend fun measureLatencyToHost(hostAddress: String): Long? = withContext(Dispatchers.IO) {
+    return@withContext try {
+        val latency = measureTimeMillis {
+            val address = InetAddress.getByName(hostAddress)
+            address.isReachable(2000) // 2 second timeout
+        }
+        latency
+    } catch (e: Exception) {
+        Timber.w(e, "Failed to measure latency to $hostAddress")
+        null
+    }
+}
+
+suspend fun findBestHostAddress(hostAddresses: List<String>): String? {
+    if (hostAddresses.isEmpty()) return null
+    if (hostAddresses.size == 1) return hostAddresses.first()
+
+    var bestAddress: String? = null
+    var bestLatency = Long.MAX_VALUE
+
+    for (address in hostAddresses) {
+        val latency = measureLatencyToHost(address)
+        if (latency != null && latency < bestLatency) {
+            bestLatency = latency
+            bestAddress = address
+        }
+    }
+
+    return bestAddress ?: hostAddresses.first()
+}
+
+suspend fun testLatency(
+    ipAddress: String,
+    port: Int,
+    timeoutMs: Int = 3000
+): IpLatency = withContext(Dispatchers.IO) {
+    try {
+        val latency = measureTimeMillis {
+            Socket().use { socket ->
+                socket.connect(InetAddress.getByName(ipAddress).let {
+                    java.net.InetSocketAddress(it, port)
+                }, timeoutMs)
+            }
+        }
+        IpLatency(ipAddress, latency, true)
+    } catch (_: Exception) {
+        try {
+            val latency = measureTimeMillis {
+                val inetAddress = InetAddress.getByName(ipAddress)
+                val isReachable = inetAddress.isReachable(timeoutMs)
+                if (!isReachable) {
+                    throw Exception("Host unreachable")
+                }
+            }
+            IpLatency(ipAddress, latency, true)
+        } catch (_: Exception) {
+            IpLatency(ipAddress, -1, false)
+        }
+    }
+}
+
+suspend fun testMultipleLatencies(
+    ipAddresses: List<String>,
+    port: Int,
+    timeoutMs: Int = 3000,
+    onLatencyResult: (String, IpLatency) -> Unit
+) = withContext(Dispatchers.IO) {
+    ipAddresses.forEach { ip ->
+        launch {
+            val result = testLatency(ip, port, timeoutMs)
+            onLatencyResult(ip, result)
+        }
+    }
+}
+
+data class IpLatency(
+    val ipAddress: String,
+    val latencyMs: Long,
+    val isReachable: Boolean
+) {
+    val latencyLevel: LatencyLevel
+        get() = when {
+            !isReachable -> LatencyLevel.UNREACHABLE
+            latencyMs < 50 -> LatencyLevel.EXCELLENT
+            latencyMs < 100 -> LatencyLevel.GOOD
+            latencyMs < 200 -> LatencyLevel.FAIR
+            latencyMs < 500 -> LatencyLevel.POOR
+            else -> LatencyLevel.VERY_POOR
+        }
+}
+
+enum class LatencyLevel {
+    /** < 50ms */
+    EXCELLENT,
+
+    /** 50-100ms */
+    GOOD,
+
+    /** 100-200ms */
+    FAIR,
+
+    /** 200-500ms */
+    POOR,
+
+    /** > 500ms */
+    VERY_POOR,
+    UNREACHABLE
 }

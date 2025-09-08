@@ -106,8 +106,7 @@ fun DeviceCard(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Column(

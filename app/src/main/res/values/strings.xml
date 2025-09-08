@@ -47,8 +47,29 @@
     <string name="host_address_port">Host address:port</string>
 
     <string name="guide">Guide</string>
+
+    <string name="discovered_device_icon_description">Discovered device icon</string>
+    <string name="discovered_connect_devices_banner">%1$d devices available for connection</string>
+    <string name="discovered_pairing_devices_banner">%1$d devices available for pairing</string>
+    <string name="view_discovered_devices">View Devices</string>
+    <string name="add_device">Add device</string>
+    <string name="select_ip_address">Select IP Address</string>
+    <string name="select_ip_address_placeholder">Choose an IP address</string>
+    <string name="view_details">View details</string>
+    <string name="device_details">Device Details</string>
+    <string name="device_serial_label">Serial Number</string>
+    <string name="device_port_label">Port</string>
+    <string name="service_name_label">Service Name</string>
+    <string name="available_addresses_label">Available Addresses</string>
+    <string name="addresses_count">addresses</string>
+    <string name="testing_latency">Testing…</string>
+    <string name="selected_address">Selected: %1$s</string>
+    <string name="add_device_to_list">Add to Device List</string>
+    <string name="unreachable">Unreachable</string>
+    <string name="connection_type_tcp">TCP Connection</string>
+    <string name="connection_type_tls_connect">TLS Connection</string>
+    <string name="connection_type_tls_pairing">TLS Pairing</string>
     <string name="pair">Pair</string>
-    <string name="add_device">Add Device</string>
     <string name="device_added">Device added, attempting to connect.</string>
     <string name="pairing">Pairing…</string>
     <string name="pairing_failed">Pairing failed</string>
@@ -77,6 +98,8 @@
     <string name="unidentified_device">Unidentified Device</string>
     <string name="edit_device">Edit Device</string>
     <string name="edit_device_instructions">ADB TCP and ADB TLS connections will first attempt to connect using the automatically discovered host address.\nIf the device cannot be discovered automatically, it will try to connect using the manually entered host address.</string>
+    <string name="device_information">Device Information</string>
+    <string name="connection_configuration">Connection Configuration</string>
     <string name="device_name_label">Device Name</string>
     <string name="adb_tcp_manual_address">ADB TCP Manual Address</string>
     <string name="adb_tls_manual_address">ADB TLS Manual Address</string>
@@ -100,6 +123,11 @@
     <string name="save">Save</string>
     <string name="saved">Saved</string>
     <string name="save_failed">Save failed</string>
+    <string name="device_info_updated">Device information updated</string>
+    <string name="device_not_found">Device not found</string>
+    <string name="device_not_found_message">The requested device could not be found. It may have been removed or the link is invalid.</string>
+    <string name="saving">Saving…</string>
+    <string name="adding_device">Adding device…</string>
 
     <string name="cast_max_size">Max size</string>
     <string name="cast_max_size_description">"Set the maximum size of the screen width or height</string>
@@ -184,4 +212,5 @@
 
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
 </resources>

@@ -2,7 +2,12 @@ package com.eiyooooo.adblink.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.data.Device
+import com.eiyooooo.adblink.data.DiscoveredDevice
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 object NavRoutes {
     const val HOME = "home"
@@ -14,6 +19,18 @@ object NavRoutes {
     const val SETTINGS_OTHER_IP = "settings/other/ip"
     const val SETTINGS_OTHER_LOG = "settings/other/log"
     const val SETTINGS_ABOUT = "settings/about"
+    const val DEVICE_DETAIL = "device_detail/{type}/{identifier}"
+    const val DEVICE_DETAIL_TYPE_EDIT = "edit"
+    const val DEVICE_DETAIL_TYPE_DISCOVERED = "discovered"
+
+    fun navigateToEditDevice(navController: NavController, device: Device) {
+        navController.navigate("device_detail/$DEVICE_DETAIL_TYPE_EDIT/${device.uuid}")
+    }
+
+    fun navigateToDiscoveredDevice(navController: NavController, discoveredDevice: DiscoveredDevice) {
+        val identifier = URLEncoder.encode(discoveredDevice.deviceSerial, StandardCharsets.UTF_8.toString())
+        navController.navigate("device_detail/$DEVICE_DETAIL_TYPE_DISCOVERED/$identifier")
+    }
 }
 
 @Composable
@@ -28,6 +45,7 @@ fun getRouteTitle(route: String): String {
         NavRoutes.SETTINGS_ABOUT -> stringResource(R.string.about)
         NavRoutes.SETTINGS_OTHER_IP -> stringResource(R.string.ip_address)
         NavRoutes.SETTINGS_OTHER_LOG -> stringResource(R.string.log)
+        NavRoutes.DEVICE_DETAIL -> stringResource(R.string.device_details)
         else -> stringResource(R.string.app_name)
     }
 }

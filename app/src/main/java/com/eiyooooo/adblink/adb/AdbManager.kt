@@ -10,11 +10,15 @@ import android.os.ext.SdkExtensions
 import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.data.DiscoveredDevice
+import com.eiyooooo.adblink.data.DiscoveredDeviceManager
+import com.eiyooooo.adblink.data.HostPort
 import com.eiyooooo.adblink.entity.ConnectionState
 import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.entity.SystemServices.usbManager
 import com.eiyooooo.adblink.entity.connectedStateList
 import com.eiyooooo.adblink.util.QrCodeGenerator
+import com.eiyooooo.adblink.util.findBestHostAddress
 import com.eiyooooo.adblink.util.generateRandomString
 import com.eiyooooo.adblink.util.isReachableLocallySuspend
 import kotlinx.coroutines.CoroutineScope
@@ -66,8 +70,9 @@ object AdbManager {
         try {
             adbKeyPair = AdbKeyPair.loadKeyPair(application.filesDir) ?: AdbKeyPair.createAdbKeyPair(application.filesDir)
 
-            adbMdns = AdbMdns(AdbMdns.SERVICE_TYPE_ADB) {
-                Timber.d("Discovered device: $it")
+            adbMdns = AdbMdns(AdbMdns.SERVICE_TYPE_ADB) { infos ->
+                Timber.d("Discovered device: $infos")
+                handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_ADB)
             }.apply {
                 start()
             }
@@ -75,12 +80,14 @@ object AdbManager {
             tlsPairingMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_PAIRING) { infos ->
                 Timber.d("Discovered pairing service: $infos")
                 pairWithDiscoveredService(infos)
+                handleDiscoveredPairingDevices(infos)
             }.apply {
                 start()
             }
 
-            tlsConnectMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_CONNECT) {
-                Timber.d("Discovered connect service: $it")
+            tlsConnectMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_CONNECT) { infos ->
+                Timber.d("Discovered connect service: $infos")
+                handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_TLS_CONNECT)
             }.apply {
                 start()
             }
@@ -463,6 +470,112 @@ object AdbManager {
 
             } catch (e: Exception) {
                 Timber.e(e, "Failed to identify device ${device.uuid}")
+            }
+        }
+    }
+
+    private fun handleDiscoveredDevices(infos: List<NsdServiceInfo>, serviceType: String) {
+        adbScope.launch {
+            val discoveredDevices = infos.mapNotNull { info ->
+                DiscoveredDevice.fromNsdServiceInfo(info)
+            }
+
+            if (discoveredDevices.isEmpty()) {
+                DiscoveredDeviceManager.updateDiscoveredConnectDevices { currentList ->
+                    currentList.filter {
+                        it.serviceType.value != serviceType
+                    }
+                }
+                return@launch
+            }
+
+            val devicesBySerial = discoveredDevices.groupBy { it.deviceSerial }
+            val existingDevices = DeviceRepository.devices.first()
+
+            for ((serial, devices) in devicesBySerial) {
+                existingDevices.find { it.deviceSerial == serial }?.let {
+                    updateExistingDeviceWithBestAddress(it, devices, serviceType)
+                }
+            }
+
+            DiscoveredDeviceManager.updateDiscoveredConnectDevices { currentList ->
+                val filteredList = currentList.filter { it.serviceType.value != serviceType }.toMutableList()
+                for (newDevice in discoveredDevices) {
+                    val alreadyExists = filteredList.any { existingDevice ->
+                        existingDevice.deviceSerial == newDevice.deviceSerial &&
+                                existingDevice.serviceType == newDevice.serviceType &&
+                                existingDevice.hostAddresses.any { it in newDevice.hostAddresses }
+                    }
+                    if (!alreadyExists) {
+                        filteredList.add(newDevice)
+                    }
+                }
+                filteredList
+            }
+        }
+    }
+
+    private fun handleDiscoveredPairingDevices(infos: List<NsdServiceInfo>) {
+        adbScope.launch {
+            val discoveredDevices = infos.mapNotNull { info ->
+                DiscoveredDevice.fromNsdServiceInfo(info)
+            }
+
+            if (discoveredDevices.isEmpty()) {
+                DiscoveredDeviceManager.updateDiscoveredPairingDevices { emptyList() }
+                return@launch
+            }
+
+            DiscoveredDeviceManager.updateDiscoveredPairingDevices { currentList ->
+                val filteredList = currentList.toMutableList()
+                for (newDevice in discoveredDevices) {
+                    val alreadyExists = filteredList.any { existingDevice ->
+                        existingDevice.deviceSerial == newDevice.deviceSerial &&
+                                existingDevice.serviceType == newDevice.serviceType &&
+                                existingDevice.hostAddresses.any { it in newDevice.hostAddresses }
+                    }
+                    if (!alreadyExists) {
+                        filteredList.add(newDevice)
+                    }
+                }
+                filteredList
+            }
+        }
+    }
+
+    private suspend fun updateExistingDeviceWithBestAddress(
+        existingDevice: Device,
+        discoveredDevices: List<DiscoveredDevice>,
+        serviceType: String
+    ) {
+        val allHostAddresses = discoveredDevices.flatMap { it.hostAddresses }.distinct()
+
+        if (allHostAddresses.isEmpty()) return
+
+        val bestAddress = findBestHostAddress(allHostAddresses)
+
+        if (bestAddress != null) {
+            val port = discoveredDevices.first().port
+            val hostPort = HostPort(bestAddress, port)
+
+            when (serviceType) {
+                AdbMdns.SERVICE_TYPE_ADB -> {
+                    if (existingDevice.tcpHostPort != hostPort) {
+                        DeviceRepository.updateDevice(existingDevice) {
+                            it.copy(tcpHostPort = hostPort)
+                        }
+                        Timber.d("Updated device ${existingDevice.deviceSerial} TCP address to $bestAddress:$port")
+                    }
+                }
+
+                AdbMdns.SERVICE_TYPE_TLS_CONNECT -> {
+                    if (existingDevice.tlsHostPort != hostPort) {
+                        DeviceRepository.updateDevice(existingDevice) {
+                            it.copy(tlsHostPort = hostPort)
+                        }
+                        Timber.d("Updated device ${existingDevice.deviceSerial} TLS address to $bestAddress:$port")
+                    }
+                }
             }
         }
     }

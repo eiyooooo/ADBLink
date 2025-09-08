@@ -36,25 +36,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.data.DiscoveredDeviceManager
 import com.eiyooooo.adblink.ui.component.DeviceCard
+import com.eiyooooo.adblink.ui.component.DiscoveredDevicesBannerCard
 import com.eiyooooo.adblink.ui.dialog.DeleteDeviceDialog
-import com.eiyooooo.adblink.ui.dialog.EditDeviceDialog
+import com.eiyooooo.adblink.ui.navigation.NavRoutes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
+fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostController) {
     var isRefreshing by remember { mutableStateOf(false) }
     val pullRefreshState = rememberPullToRefreshState()
     val coroutineScope = rememberCoroutineScope()
 
     val devices by DeviceRepository.devices.collectAsState(initial = emptyList())
+    val discoveredConnectDevices by DiscoveredDeviceManager.discoveredConnectDevices.collectAsState()
+    val discoveredPairingDevices by DiscoveredDeviceManager.discoveredPairingDevices.collectAsState()
 
-    var deviceToEdit by remember { mutableStateOf<Device?>(null) }
     var deviceToDelete by remember { mutableStateOf<Device?>(null) }
 
     LaunchedEffect(Unit) {
@@ -64,8 +68,33 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (discoveredConnectDevices.isNotEmpty()) {
+            DiscoveredDevicesBannerCard(
+                bannerText = stringResource(
+                    R.string.discovered_connect_devices_banner,
+                    discoveredConnectDevices.size
+                ),
+                devices = discoveredConnectDevices,
+                onDeviceClick = { NavRoutes.navigateToDiscoveredDevice(navController, it) },
+                widthSizeClass = widthSizeClass
+            )
+        }
+
+        if (discoveredPairingDevices.isNotEmpty()) {
+            DiscoveredDevicesBannerCard(
+                bannerText = stringResource(
+                    R.string.discovered_pairing_devices_banner,
+                    discoveredPairingDevices.size
+                ),
+                devices = discoveredPairingDevices,
+                onDeviceClick = { NavRoutes.navigateToDiscoveredDevice(navController, it) },
+                widthSizeClass = widthSizeClass
+            )
+        }
+
         if (devices.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -118,12 +147,13 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
                 when (widthSizeClass) {
                     WindowWidthSizeClass.Compact -> {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(devices) { device ->
                                 DeviceCard(
                                     device = device,
-                                    onEditClick = { deviceToEdit = it },
+                                    onEditClick = { NavRoutes.navigateToEditDevice(navController, it) },
                                     onDeleteClick = { deviceToDelete = it }
                                 )
                             }
@@ -135,12 +165,12 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
                             columns = GridCells.Adaptive(minSize = 280.dp),
                             modifier = Modifier.fillMaxSize(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(devices) { device ->
                                 DeviceCard(
                                     device = device,
-                                    onEditClick = { deviceToEdit = it },
+                                    onEditClick = { NavRoutes.navigateToEditDevice(navController, it) },
                                     onDeleteClick = { deviceToDelete = it }
                                 )
                             }
@@ -149,12 +179,13 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
 
                     else -> {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(devices) { device ->
                                 DeviceCard(
                                     device = device,
-                                    onEditClick = { deviceToEdit = it },
+                                    onEditClick = { NavRoutes.navigateToEditDevice(navController, it) },
                                     onDeleteClick = { deviceToDelete = it }
                                 )
                             }
@@ -165,28 +196,15 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass) {
         }
     }
 
-    deviceToEdit?.let { currentDevice ->
-        EditDeviceDialog(
-            device = currentDevice,
-            onDismiss = { deviceToEdit = null },
-            onSave = { updatedDevice ->
-                coroutineScope.launch {
-                    DeviceRepository.updateDevice(currentDevice) {
-                        updatedDevice
-                    }
-                }
-                deviceToEdit = null
-            }
-        )
-    }
-
-    deviceToDelete?.let { currentDevice ->
+    deviceToDelete?.let {
         DeleteDeviceDialog(
-            deviceName = currentDevice.name,
-            onDismiss = { deviceToDelete = null },
+            deviceName = it.name,
+            onDismiss = {
+                deviceToDelete = null
+            },
             onConfirm = {
                 coroutineScope.launch {
-                    DeviceRepository.removeDevice(currentDevice.uuid)
+                    DeviceRepository.removeDevice(it.uuid)
                 }
                 deviceToDelete = null
             }

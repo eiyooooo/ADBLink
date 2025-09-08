@@ -54,7 +54,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @Composable
-fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
+fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit, initialHostPort: String = "") {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -62,7 +62,7 @@ fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
 
     var message by remember { mutableStateOf("") }
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(if (initialHostPort.isNotEmpty()) 2 else 0) }
     val tabs = listOf(
         stringResource(R.string.guide),
         stringResource(R.string.qr_code),
@@ -73,7 +73,7 @@ fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
     var isGeneratingQr by remember { mutableStateOf(false) }
     var qrGenerationFailed by remember { mutableStateOf(false) }
 
-    var pairingHostPort by remember { mutableStateOf("") }
+    var pairingHostPort by remember { mutableStateOf(initialHostPort) }
     var pairingCode by remember { mutableStateOf("") }
     var isPairing by remember { mutableStateOf(false) }
 

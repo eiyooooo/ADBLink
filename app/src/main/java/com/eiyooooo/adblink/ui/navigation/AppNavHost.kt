@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import com.eiyooooo.adblink.ui.screen.AboutScreen
 import com.eiyooooo.adblink.ui.screen.CastSettingsScreen
 import com.eiyooooo.adblink.ui.screen.DefaultCastParametersSettingsScreen
+import com.eiyooooo.adblink.ui.screen.DeviceDetailScreen
 import com.eiyooooo.adblink.ui.screen.HomeScreen
 import com.eiyooooo.adblink.ui.screen.IpScreen
 import com.eiyooooo.adblink.ui.screen.LogScreen
@@ -44,7 +45,7 @@ fun AppNavHost(
             exitTransition = { fadeOut(animationSpec = tween(300)) }
         ) {
             composable(route = NavRoutes.HOME) {
-                HomeScreen(widthSizeClass)
+                HomeScreen(widthSizeClass, navController)
             }
             composable(route = NavRoutes.MANAGE) {
                 ManageScreen(widthSizeClass)
@@ -69,6 +70,16 @@ fun AppNavHost(
             }
             composable(route = NavRoutes.SETTINGS_ABOUT) {
                 AboutScreen()
+            }
+            composable(route = NavRoutes.DEVICE_DETAIL) { backStackEntry ->
+                val type = backStackEntry.arguments?.getString("type") ?: ""
+                val identifier = backStackEntry.arguments?.getString("identifier") ?: ""
+                DeviceDetailScreen(
+                    deviceType = type,
+                    deviceIdentifier = identifier,
+                    navController = navController,
+                    showSnackbar = showSnackbar
+                )
             }
         }
     }
