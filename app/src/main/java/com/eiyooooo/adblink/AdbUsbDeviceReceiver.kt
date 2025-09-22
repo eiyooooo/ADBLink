@@ -9,7 +9,7 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Build
-import com.eiyooooo.adblink.adb.AdbManager
+import com.eiyooooo.adblink.adb.isPotentialAdbDevice
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.entity.Preferences
@@ -134,7 +134,7 @@ class AdbUsbDeviceReceiver private constructor() : BroadcastReceiver() {
 
     private fun requestUsbPermissionIfNeeded(context: Context, usbDevice: UsbDevice?) {
         usbDevice?.takeIf {
-            AdbManager.isPotentialAdbDevice(it)
+            it.isPotentialAdbDevice()
         }?.let {
             if (SystemServices.usbManager.hasPermission(it)) {
                 processAuthorizedUsbDevice(it)
@@ -166,7 +166,7 @@ class AdbUsbDeviceReceiver private constructor() : BroadcastReceiver() {
         var permissionNeeded = false
         var potentialDeviceFound = false
         deviceList.values.forEach {
-            if (AdbManager.isPotentialAdbDevice(it)) {
+            if (it.isPotentialAdbDevice()) {
                 potentialDeviceFound = true
                 if (!SystemServices.usbManager.hasPermission(it)) {
                     permissionNeeded = true

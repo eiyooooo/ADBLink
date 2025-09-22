@@ -2,8 +2,6 @@ package com.eiyooooo.adblink.adb
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.hardware.usb.UsbConstants
-import android.hardware.usb.UsbDevice
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
@@ -211,19 +209,6 @@ object AdbManager {
                 }
             }
         }
-    }
-
-    fun isPotentialAdbDevice(usbDevice: UsbDevice?): Boolean {
-        usbDevice ?: return false
-        for (i in 0 until usbDevice.interfaceCount) {
-            val usbInterface = usbDevice.getInterface(i)
-            if (usbInterface.interfaceClass == UsbConstants.USB_CLASS_VENDOR_SPEC
-                && usbInterface.interfaceSubclass == 66 && usbInterface.interfaceProtocol == 1
-            ) {
-                return true
-            }
-        }
-        return false
     }
 
     fun connectDevice(device: Device) {

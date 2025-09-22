@@ -1,5 +1,7 @@
 package com.eiyooooo.adblink.adb
 
+import android.hardware.usb.UsbConstants
+import android.hardware.usb.UsbDevice
 import com.eiyooooo.adblink.adb.LocalServices.ID_DATA
 import com.eiyooooo.adblink.adb.LocalServices.ID_DENT_V1
 import com.eiyooooo.adblink.adb.LocalServices.ID_DENT_V2
@@ -32,6 +34,24 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import kotlin.math.min
+
+/**
+ * Checks if the USB device is a potential ADB device by examining its interfaces.
+ *
+ * @return True if the device has an interface matching ADB criteria, false otherwise
+ */
+fun UsbDevice?.isPotentialAdbDevice(): Boolean {
+    this ?: return false
+    for (i in 0 until interfaceCount) {
+        val usbInterface = getInterface(i)
+        if (usbInterface.interfaceClass == UsbConstants.USB_CLASS_VENDOR_SPEC
+            && usbInterface.interfaceSubclass == 66 && usbInterface.interfaceProtocol == 1
+        ) {
+            return true
+        }
+    }
+    return false
+}
 
 /**
  * Executes an ADB shell command.
