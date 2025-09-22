@@ -8,12 +8,13 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
 import com.eiyooooo.adblink.application
+import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.data.DiscoveredDevice
 import com.eiyooooo.adblink.data.DiscoveredDeviceManager
-import com.eiyooooo.adblink.data.HostPort
 import com.eiyooooo.adblink.entity.ConnectionState
+import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.entity.SystemServices.usbManager
 import com.eiyooooo.adblink.entity.connectedStateList
@@ -133,13 +134,10 @@ object AdbManager {
                     }
                     if (existingDevice == null) {
                         val device = Device.createWithDefaults(
-                            deviceBrand = "",
                             deviceName = host,
                             deviceSerial = serial,
-                            usbDevice = null,
-                            tcpHostPort = null,
-                            tlsName = remotePeerInfo,
-                            tlsHostPort = null
+                            connectionEndpoints = emptyList(),
+                            tlsName = remotePeerInfo
                         )
                         DeviceRepository.addDevice(device)
                         Timber.d("Added device to repository via pairing: $serial")
@@ -258,34 +256,31 @@ object AdbManager {
                     }
                 }
 
-                // Try TLS connection if USB failed
-                if (!connected && device.tlsHostPort != null) {
-                    when (val result = tryCreateAndConnect("TLS", device.uuid) {
-                        AdbConnection.create(device.tlsHostPort.host, device.tlsHostPort.port, adbKeyPair)
-                    }) {
-                        is ConnectionResult.Success -> {
-                            connection = result.connection
-                            connected = true
-                        }
-
-                        is ConnectionResult.Failure -> {
-                            lastFailureReason = result.reason
+                // Try network connections (TLS first, then TCP) if USB failed
+                if (!connected) {
+                    // Sort endpoints to prioritize TLS over TCP
+                    val sortedEndpoints = device.connectionEndpoints.sortedBy {
+                        when (it.type) {
+                            ConnectionType.TLS -> 0
+                            ConnectionType.TCP -> 1
                         }
                     }
-                }
 
-                // Try TCP connection if USB and TLS failed
-                if (!connected && device.tcpHostPort != null) {
-                    when (val result = tryCreateAndConnect("TCP", device.uuid) {
-                        AdbConnection.create(device.tcpHostPort.host, device.tcpHostPort.port, adbKeyPair)
-                    }) {
-                        is ConnectionResult.Success -> {
-                            connection = result.connection
-                            connected = true
-                        }
+                    for (endpoint in sortedEndpoints) {
+                        if (connected) break
 
-                        is ConnectionResult.Failure -> {
-                            lastFailureReason = result.reason
+                        val connectionTypeName = endpoint.type.name
+                        when (val result = tryCreateAndConnect(connectionTypeName, device.uuid) {
+                            AdbConnection.create(endpoint.host, endpoint.port, adbKeyPair)
+                        }) {
+                            is ConnectionResult.Success -> {
+                                connection = result.connection
+                                connected = true
+                            }
+
+                            is ConnectionResult.Failure -> {
+                                lastFailureReason = result.reason
+                            }
                         }
                     }
                 }
@@ -401,15 +396,12 @@ object AdbManager {
                 when {
                     // If USB is available but we're not using USB connection, reconnect
                     newDevice.usbDevice != null && !currentConnection.isUsbConnection -> true
-                    // If USB is not available but TLS is available and we're using TCP, reconnect
-                    newDevice.usbDevice == null && newDevice.tlsHostPort != null &&
+                    // If USB is not available but TLS endpoint is available and we're using TCP, reconnect
+                    newDevice.usbDevice == null &&
+                            newDevice.connectionEndpoints.any { it.type == ConnectionType.TLS } &&
                             !currentConnection.isUsbConnection && !currentConnection.isTlsConnection() -> true
-                    // If TLS address changed and we're using TLS connection, reconnect
-                    oldDevice.tlsHostPort != newDevice.tlsHostPort &&
-                            currentConnection.isTlsConnection() -> true
-                    // If TCP address changed and we're using TCP connection, reconnect
-                    oldDevice.tcpHostPort != newDevice.tcpHostPort &&
-                            currentConnection.isTcpConnection() -> true
+                    // If connection endpoints changed, reconnect
+                    oldDevice.connectionEndpoints != newDevice.connectionEndpoints -> true
 
                     else -> false
                 }
@@ -556,26 +548,29 @@ object AdbManager {
 
         if (bestAddress != null) {
             val port = discoveredDevices.first().port
-            val hostPort = HostPort(bestAddress, port)
+            val connectionType = when (serviceType) {
+                AdbMdns.SERVICE_TYPE_ADB -> ConnectionType.TCP
+                AdbMdns.SERVICE_TYPE_TLS_CONNECT -> ConnectionType.TLS
+                else -> ConnectionType.TCP
+            }
 
-            when (serviceType) {
-                AdbMdns.SERVICE_TYPE_ADB -> {
-                    if (existingDevice.tcpHostPort != hostPort) {
-                        DeviceRepository.updateDevice(existingDevice) {
-                            it.copy(tcpHostPort = hostPort)
-                        }
-                        Timber.d("Updated device ${existingDevice.deviceSerial} TCP address to $bestAddress:$port")
-                    }
-                }
+            val newEndpoint = ConnectionEndpoint(bestAddress, port, connectionType)
 
-                AdbMdns.SERVICE_TYPE_TLS_CONNECT -> {
-                    if (existingDevice.tlsHostPort != hostPort) {
-                        DeviceRepository.updateDevice(existingDevice) {
-                            it.copy(tlsHostPort = hostPort)
-                        }
-                        Timber.d("Updated device ${existingDevice.deviceSerial} TLS address to $bestAddress:$port")
-                    }
+            // Check if this endpoint already exists
+            val existingEndpoint = existingDevice.connectionEndpoints.find {
+                it.host == newEndpoint.host && it.port == newEndpoint.port && it.type == newEndpoint.type
+            }
+
+            if (existingEndpoint == null) {
+                // Add new endpoint or update existing endpoint of same type
+                val updatedEndpoints = existingDevice.connectionEndpoints
+                    .filterNot { it.type == connectionType } // Remove old endpoint of same type
+                    .plus(newEndpoint) // Add new endpoint
+
+                DeviceRepository.updateDevice(existingDevice) {
+                    it.copy(connectionEndpoints = updatedEndpoints)
                 }
+                Timber.d("Updated device ${existingDevice.deviceSerial} ${connectionType.name} address to $bestAddress:$port")
             }
         }
     }

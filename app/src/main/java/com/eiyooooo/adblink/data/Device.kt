@@ -15,9 +15,8 @@ data class Device(
     val name: String,
     // connection information
     @Transient val usbDevice: UsbDevice? = null,
-    val tcpHostPort: HostPort?,
+    val connectionEndpoints: List<ConnectionEndpoint>,
     val tlsName: String?,
-    val tlsHostPort: HostPort?,
     // cast configuration
     val maxSize: Int,
     val maxFps: Int,
@@ -30,13 +29,12 @@ data class Device(
 
     companion object {
         fun createWithDefaults(
-            deviceBrand: String,
-            deviceName: String,
-            deviceSerial: String,
-            usbDevice: UsbDevice?,
-            tcpHostPort: HostPort?,
-            tlsName: String?,
-            tlsHostPort: HostPort?
+            deviceBrand: String = "",
+            deviceName: String = "",
+            deviceSerial: String = "",
+            usbDevice: UsbDevice? = null,
+            connectionEndpoints: List<ConnectionEndpoint> = emptyList(),
+            tlsName: String? = null
         ): Device {
             return Device(
                 uuid = generateUuid(),
@@ -46,9 +44,8 @@ data class Device(
                 deviceSerial = deviceSerial,
                 name = "$deviceBrand $deviceName".trim(),
                 usbDevice = usbDevice,
-                tcpHostPort = tcpHostPort,
+                connectionEndpoints = connectionEndpoints,
                 tlsName = tlsName,
-                tlsHostPort = tlsHostPort,
                 maxSize = Preferences.defaultCastMaxSize,
                 maxFps = Preferences.defaultCastMaxFps,
                 maxVideoBitrate = Preferences.defaultCastMaxVideoBitrate,

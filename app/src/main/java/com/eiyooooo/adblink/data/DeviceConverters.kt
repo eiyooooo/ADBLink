@@ -1,28 +1,25 @@
 package com.eiyooooo.adblink.data
 
 import androidx.room.TypeConverter
+import kotlinx.serialization.json.Json
 
 class DeviceConverters {
 
-    @TypeConverter
-    fun fromHostPort(hostPort: HostPort?): String? {
-        return hostPort?.let {
-            "${it.host}:${it.port}"
-        }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
     }
 
     @TypeConverter
-    fun toHostPort(hostPortString: String?): HostPort? {
+    fun fromConnectionEndpointList(endpoints: List<ConnectionEndpoint>?): String? {
+        return endpoints?.let { json.encodeToString(it) }
+    }
+
+    @TypeConverter
+    fun toConnectionEndpointList(endpointsString: String?): List<ConnectionEndpoint>? {
         return try {
-            hostPortString?.let {
-                val parts = it.split(":")
-                if (parts.size == 2) {
-                    HostPort(parts[0], parts[1].toInt())
-                } else {
-                    null
-                }
-            }
-        } catch (e: Exception) {
+            endpointsString?.let { json.decodeFromString(it) }
+        } catch (_: Exception) {
             null
         }
     }

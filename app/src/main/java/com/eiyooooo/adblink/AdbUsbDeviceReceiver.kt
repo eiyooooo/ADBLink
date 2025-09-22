@@ -116,9 +116,8 @@ class AdbUsbDeviceReceiver private constructor() : BroadcastReceiver() {
                         deviceName = productName,
                         deviceSerial = serialNumber,
                         usbDevice = usbDevice,
-                        tcpHostPort = null,
-                        tlsName = null,
-                        tlsHostPort = null
+                        connectionEndpoints = emptyList(),
+                        tlsName = null
                     )
                     DeviceRepository.addDevice(device)
                     Timber.d("Added device to repository via USB: $serialNumber")
