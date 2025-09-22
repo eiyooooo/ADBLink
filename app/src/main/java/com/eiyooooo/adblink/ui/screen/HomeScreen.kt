@@ -38,9 +38,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.data.DiscoveredDeviceManager
 import com.eiyooooo.adblink.ui.component.DeviceCard
 import com.eiyooooo.adblink.ui.component.DiscoveredDevicesBannerCard
 import com.eiyooooo.adblink.ui.dialog.DeleteDeviceDialog

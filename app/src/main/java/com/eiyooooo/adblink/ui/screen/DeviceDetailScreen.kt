@@ -50,11 +50,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.data.AdbServiceType
+import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
+import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.data.DiscoveredDevice
-import com.eiyooooo.adblink.data.DiscoveredDeviceManager
 import com.eiyooooo.adblink.ui.component.BubbleMessage
 import com.eiyooooo.adblink.ui.component.info.DetailInfoRow
 import com.eiyooooo.adblink.ui.component.info.LatencyIndicator
@@ -180,12 +180,12 @@ private fun DeviceDetailScreenContent(
                             coroutineScope.launch {
                                 try {
                                     // TODO
-                                    val tcpHostPort = if (discoveredDevice.serviceType == AdbServiceType.ADB_TCP) {
+                                    val tcpHostPort = if (discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TCP) {
                                         selectedIp?.let { "$it:${discoveredDevice.port}".parseHostPort() }
                                     } else null
 
-                                    val tlsHostPort = if (discoveredDevice.serviceType == AdbServiceType.ADB_TLS_CONNECT
-                                        || discoveredDevice.serviceType == AdbServiceType.ADB_TLS_PAIRING
+                                    val tlsHostPort = if (discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TLS_CONNECT
+                                        || discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TLS_PAIRING
                                     ) {
                                         selectedIp?.let { "$it:${discoveredDevice.port}".parseHostPort() }
                                     } else null
@@ -196,8 +196,8 @@ private fun DeviceDetailScreenContent(
                                         deviceSerial = discoveredDevice.deviceSerial,
                                         usbDevice = null,
                                         tcpHostPort = tcpHostPort,
-                                        tlsName = if (discoveredDevice.serviceType == AdbServiceType.ADB_TLS_CONNECT
-                                            || discoveredDevice.serviceType == AdbServiceType.ADB_TLS_PAIRING
+                                        tlsName = if (discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TLS_CONNECT
+                                            || discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TLS_PAIRING
                                         ) discoveredDevice.serviceName else null,
                                         tlsHostPort = tlsHostPort
                                     )
@@ -407,9 +407,9 @@ private fun DiscoveredDeviceContent(
     onAddDevice: (DiscoveredDevice, String?) -> Unit
 ) {
     val icon = when (discoveredDevice.serviceType) {
-        AdbServiceType.ADB_TCP -> Icons.Filled.Wifi
-        AdbServiceType.ADB_TLS_CONNECT -> Icons.Filled.Security
-        AdbServiceType.ADB_TLS_PAIRING -> Icons.Filled.Security
+        AdbDiscoverServiceType.ADB_TCP -> Icons.Filled.Wifi
+        AdbDiscoverServiceType.ADB_TLS_CONNECT -> Icons.Filled.Security
+        AdbDiscoverServiceType.ADB_TLS_PAIRING -> Icons.Filled.Security
     }
 
     val backgroundColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
@@ -490,9 +490,9 @@ private fun DiscoveredDeviceContent(
                         )
                         Text(
                             text = when (discoveredDevice.serviceType) {
-                                AdbServiceType.ADB_TCP -> stringResource(R.string.connection_type_tcp)
-                                AdbServiceType.ADB_TLS_CONNECT -> stringResource(R.string.connection_type_tls_connect)
-                                AdbServiceType.ADB_TLS_PAIRING -> stringResource(R.string.connection_type_tls_pairing)
+                                AdbDiscoverServiceType.ADB_TCP -> stringResource(R.string.connection_type_tcp)
+                                AdbDiscoverServiceType.ADB_TLS_CONNECT -> stringResource(R.string.connection_type_tls_connect)
+                                AdbDiscoverServiceType.ADB_TLS_PAIRING -> stringResource(R.string.connection_type_tls_pairing)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary

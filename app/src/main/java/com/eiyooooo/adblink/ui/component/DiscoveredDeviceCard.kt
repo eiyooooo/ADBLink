@@ -29,8 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.data.AdbServiceType
-import com.eiyooooo.adblink.data.DiscoveredDevice
+import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 
 @Composable
 fun DiscoveredDeviceCard(
@@ -39,17 +39,17 @@ fun DiscoveredDeviceCard(
     modifier: Modifier = Modifier
 ) {
     val icon = when (device.serviceType) {
-        AdbServiceType.ADB_TCP -> Icons.Filled.Wifi
-        AdbServiceType.ADB_TLS_CONNECT -> Icons.Filled.Security
-        AdbServiceType.ADB_TLS_PAIRING -> Icons.Filled.Security
+        AdbDiscoverServiceType.ADB_TCP -> Icons.Filled.Wifi
+        AdbDiscoverServiceType.ADB_TLS_CONNECT -> Icons.Filled.Security
+        AdbDiscoverServiceType.ADB_TLS_PAIRING -> Icons.Filled.Security
     }
 
     val backgroundColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
 
     val connectionTypeText = when (device.serviceType) {
-        AdbServiceType.ADB_TCP -> stringResource(R.string.connection_type_tcp)
-        AdbServiceType.ADB_TLS_CONNECT -> stringResource(R.string.connection_type_tls_connect)
-        AdbServiceType.ADB_TLS_PAIRING -> stringResource(R.string.connection_type_tls_pairing)
+        AdbDiscoverServiceType.ADB_TCP -> stringResource(R.string.connection_type_tcp)
+        AdbDiscoverServiceType.ADB_TLS_CONNECT -> stringResource(R.string.connection_type_tls_connect)
+        AdbDiscoverServiceType.ADB_TLS_PAIRING -> stringResource(R.string.connection_type_tls_pairing)
     }
 
     Card(

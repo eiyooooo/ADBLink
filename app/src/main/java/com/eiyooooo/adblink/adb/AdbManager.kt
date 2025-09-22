@@ -5,11 +5,13 @@ import android.graphics.Color
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
+import com.eiyooooo.adblink.adb.discover.AdbDiscoverService
+import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
+import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.data.DiscoveredDeviceManager
 import com.eiyooooo.adblink.entity.ConnectionState
 import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.entity.Preferences
@@ -45,9 +47,9 @@ object AdbManager {
 
     private lateinit var adbKeyPair: AdbKeyPair
 
-    private var adbMdns: AdbMdns? = null
-    private var tlsPairingMdns: AdbMdns? = null
-    private var tlsConnectMdns: AdbMdns? = null
+    private var tcpConnectDiscoverService: AdbDiscoverService? = null
+    private var tlsConnectDiscoverService: AdbDiscoverService? = null
+    private var tlsPairingDiscoverService: AdbDiscoverService? = null
 
     private var qrPairInfo: Pair<String, String>? = null
     private val _qrPairingSuccess = MutableStateFlow(false)
@@ -67,24 +69,24 @@ object AdbManager {
         try {
             adbKeyPair = AdbKeyPair.loadKeyPair(application.filesDir) ?: AdbKeyPair.createAdbKeyPair(application.filesDir)
 
-            adbMdns = AdbMdns(AdbMdns.SERVICE_TYPE_ADB) { infos ->
+            tcpConnectDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TCP) { infos ->
                 Timber.d("Discovered device: $infos")
-                DiscoveredDeviceManager.handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_ADB)
+                DiscoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TCP)
             }.apply {
                 start()
             }
 
-            tlsPairingMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_PAIRING) { infos ->
+            tlsConnectDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TLS_CONNECT) { infos ->
+                Timber.d("Discovered connect service: $infos")
+                DiscoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TLS_CONNECT)
+            }.apply {
+                start()
+            }
+
+            tlsPairingDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TLS_PAIRING) { infos ->
                 Timber.d("Discovered pairing service: $infos")
                 pairWithDiscoveredService(infos)
                 DiscoveredDeviceManager.handleDiscoveredPairingDevices(infos)
-            }.apply {
-                start()
-            }
-
-            tlsConnectMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_CONNECT) { infos ->
-                Timber.d("Discovered connect service: $infos")
-                DiscoveredDeviceManager.handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_TLS_CONNECT)
             }.apply {
                 start()
             }

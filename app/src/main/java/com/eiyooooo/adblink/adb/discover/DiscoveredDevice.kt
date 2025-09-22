@@ -1,25 +1,14 @@
-package com.eiyooooo.adblink.data
+package com.eiyooooo.adblink.adb.discover
 
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
-
-enum class AdbServiceType(val value: String) {
-    ADB_TCP("_adb._tcp"),
-    ADB_TLS_CONNECT("_adb-tls-connect._tcp"),
-    ADB_TLS_PAIRING("_adb-tls-pairing._tcp");
-
-    companion object {
-        fun fromString(serviceType: String): AdbServiceType {
-            return entries.find { it.value == serviceType } ?: ADB_TCP
-        }
-    }
-}
+import timber.log.Timber
 
 data class DiscoveredDevice(
     val deviceSerial: String,
     val serviceName: String,
-    val serviceType: AdbServiceType,
+    val serviceType: AdbDiscoverServiceType,
     val hostAddresses: List<String>,
     val port: Int,
     val serviceInfo: NsdServiceInfo
@@ -30,12 +19,15 @@ data class DiscoveredDevice(
          * Extracts device serial from service name
          * Expected format: adb-{serial}-{suffix} or adb-{serial}
          */
-        fun extractSerialFromServiceName(serviceName: String): String? {
+        private fun extractSerialFromServiceName(serviceName: String): String? {
             return Regex("""adb-([^-]+)""").find(serviceName)?.groupValues?.get(1)
         }
 
         fun fromNsdServiceInfo(serviceInfo: NsdServiceInfo): DiscoveredDevice? {
-            val deviceSerial = extractSerialFromServiceName(serviceInfo.serviceName) ?: return null
+            val deviceSerial = extractSerialFromServiceName(serviceInfo.serviceName) ?: run {
+                Timber.w("Failed to extract device serial from service name: ${serviceInfo.serviceName}")
+                return null
+            }
 
             val hostAddresses = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
@@ -47,10 +39,20 @@ data class DiscoveredDevice(
                 listOfNotNull(serviceInfo.host?.hostAddress)
             }
 
+            if (hostAddresses.isEmpty()) {
+                Timber.w("No valid host addresses found for device: $deviceSerial")
+                return null
+            }
+
+            val serviceType = AdbDiscoverServiceType.fromNsdServiceInfo(serviceInfo) ?: run {
+                Timber.w("Unknown service type: ${serviceInfo.serviceType}")
+                return null
+            }
+
             return DiscoveredDevice(
                 deviceSerial = deviceSerial,
                 serviceName = serviceInfo.serviceName,
-                serviceType = AdbServiceType.fromString(serviceInfo.serviceType),
+                serviceType = serviceType,
                 hostAddresses = hostAddresses,
                 port = serviceInfo.port,
                 serviceInfo = serviceInfo

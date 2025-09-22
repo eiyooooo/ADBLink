@@ -39,7 +39,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.data.DiscoveredDevice
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 
 @Composable
 fun DiscoveredDevicesBannerCard(

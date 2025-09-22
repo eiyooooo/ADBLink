@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.data.Device
-import com.eiyooooo.adblink.data.DiscoveredDevice
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
