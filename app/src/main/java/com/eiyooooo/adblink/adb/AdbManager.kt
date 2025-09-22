@@ -9,7 +9,6 @@ import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.data.DiscoveredDevice
 import com.eiyooooo.adblink.data.DiscoveredDeviceManager
 import com.eiyooooo.adblink.entity.ConnectionState
 import com.eiyooooo.adblink.entity.ConnectionType
@@ -17,7 +16,6 @@ import com.eiyooooo.adblink.entity.Preferences
 import com.eiyooooo.adblink.entity.SystemServices.usbManager
 import com.eiyooooo.adblink.entity.connectedStateList
 import com.eiyooooo.adblink.util.QrCodeGenerator
-import com.eiyooooo.adblink.util.findBestHostAddress
 import com.eiyooooo.adblink.util.generateRandomString
 import com.eiyooooo.adblink.util.isReachableLocallySuspend
 import kotlinx.coroutines.CoroutineScope
@@ -71,7 +69,7 @@ object AdbManager {
 
             adbMdns = AdbMdns(AdbMdns.SERVICE_TYPE_ADB) { infos ->
                 Timber.d("Discovered device: $infos")
-                handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_ADB)
+                DiscoveredDeviceManager.handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_ADB)
             }.apply {
                 start()
             }
@@ -79,14 +77,14 @@ object AdbManager {
             tlsPairingMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_PAIRING) { infos ->
                 Timber.d("Discovered pairing service: $infos")
                 pairWithDiscoveredService(infos)
-                handleDiscoveredPairingDevices(infos)
+                DiscoveredDeviceManager.handleDiscoveredPairingDevices(infos)
             }.apply {
                 start()
             }
 
             tlsConnectMdns = AdbMdns(AdbMdns.SERVICE_TYPE_TLS_CONNECT) { infos ->
                 Timber.d("Discovered connect service: $infos")
-                handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_TLS_CONNECT)
+                DiscoveredDeviceManager.handleDiscoveredDevices(infos, AdbMdns.SERVICE_TYPE_TLS_CONNECT)
             }.apply {
                 start()
             }
@@ -242,14 +240,17 @@ object AdbManager {
                 }
 
                 // Try network connections (TLS first, then TCP) if USB failed
+                var successfulEndpoint: ConnectionEndpoint? = null
                 if (!connected) {
-                    // Sort endpoints to prioritize TLS over TCP
-                    val sortedEndpoints = device.connectionEndpoints.sortedBy {
-                        when (it.type) {
-                            ConnectionType.TLS -> 0
-                            ConnectionType.TCP -> 1
+                    // Sort endpoints by last used time (most recent first), then by connection type (TLS before TCP)
+                    val sortedEndpoints = device.connectionEndpoints.sortedWith(
+                        compareByDescending<ConnectionEndpoint> { it.lastUsedTime }.thenBy {
+                            when (it.type) {
+                                ConnectionType.TLS -> 0
+                                ConnectionType.TCP -> 1
+                            }
                         }
-                    }
+                    )
 
                     for (endpoint in sortedEndpoints) {
                         if (connected) break
@@ -261,6 +262,7 @@ object AdbManager {
                             is ConnectionResult.Success -> {
                                 connection = result.connection
                                 connected = true
+                                successfulEndpoint = endpoint
                             }
 
                             is ConnectionResult.Failure -> {
@@ -280,6 +282,11 @@ object AdbManager {
                     }
                     updateConnectionState(device.uuid, connectionState)
                     Timber.d("Device ${device.uuid} connected successfully via ${connectionState.name}")
+
+                    // Update last used time for successful network connection
+                    if (successfulEndpoint != null && !connection.isUsbConnection) {
+                        updateEndpointLastUsedTime(device, successfulEndpoint)
+                    }
 
                     // Identify unidentified device
                     if (device.isUnidentified) {
@@ -423,6 +430,28 @@ object AdbManager {
         }
     }
 
+    private fun updateEndpointLastUsedTime(device: Device, successfulEndpoint: ConnectionEndpoint) {
+        adbScope.launch {
+            try {
+                val updatedEndpoints = device.connectionEndpoints.map { endpoint ->
+                    if (endpoint.host == successfulEndpoint.host &&
+                        endpoint.port == successfulEndpoint.port &&
+                        endpoint.type == successfulEndpoint.type
+                    ) {
+                        endpoint.withUpdatedTime()
+                    } else {
+                        endpoint
+                    }
+                }
+                val updatedDevice = device.copy(connectionEndpoints = updatedEndpoints)
+                DeviceRepository.updateDevice(device) { updatedDevice }
+                Timber.d("Updated last used time for endpoint ${successfulEndpoint.host}:${successfulEndpoint.port}")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to update last used time for endpoint ${successfulEndpoint.host}:${successfulEndpoint.port}")
+            }
+        }
+    }
+
     private fun identifyDevice(device: Device, connection: AdbConnection) {
         adbScope.launch {
             try {
@@ -447,115 +476,6 @@ object AdbManager {
 
             } catch (e: Exception) {
                 Timber.e(e, "Failed to identify device ${device.uuid}")
-            }
-        }
-    }
-
-    private fun handleDiscoveredDevices(infos: List<NsdServiceInfo>, serviceType: String) {
-        adbScope.launch {
-            val discoveredDevices = infos.mapNotNull { info ->
-                DiscoveredDevice.fromNsdServiceInfo(info)
-            }
-
-            if (discoveredDevices.isEmpty()) {
-                DiscoveredDeviceManager.updateDiscoveredConnectDevices { currentList ->
-                    currentList.filter {
-                        it.serviceType.value != serviceType
-                    }
-                }
-                return@launch
-            }
-
-            val devicesBySerial = discoveredDevices.groupBy { it.deviceSerial }
-            val existingDevices = DeviceRepository.devices.first()
-
-            for ((serial, devices) in devicesBySerial) {
-                existingDevices.find { it.deviceSerial == serial }?.let {
-                    updateExistingDeviceWithBestAddress(it, devices, serviceType)
-                }
-            }
-
-            DiscoveredDeviceManager.updateDiscoveredConnectDevices { currentList ->
-                val filteredList = currentList.filter { it.serviceType.value != serviceType }.toMutableList()
-                for (newDevice in discoveredDevices) {
-                    val alreadyExists = filteredList.any { existingDevice ->
-                        existingDevice.deviceSerial == newDevice.deviceSerial &&
-                                existingDevice.serviceType == newDevice.serviceType &&
-                                existingDevice.hostAddresses.any { it in newDevice.hostAddresses }
-                    }
-                    if (!alreadyExists) {
-                        filteredList.add(newDevice)
-                    }
-                }
-                filteredList
-            }
-        }
-    }
-
-    private fun handleDiscoveredPairingDevices(infos: List<NsdServiceInfo>) {
-        adbScope.launch {
-            val discoveredDevices = infos.mapNotNull { info ->
-                DiscoveredDevice.fromNsdServiceInfo(info)
-            }
-
-            if (discoveredDevices.isEmpty()) {
-                DiscoveredDeviceManager.updateDiscoveredPairingDevices { emptyList() }
-                return@launch
-            }
-
-            DiscoveredDeviceManager.updateDiscoveredPairingDevices { currentList ->
-                val filteredList = currentList.toMutableList()
-                for (newDevice in discoveredDevices) {
-                    val alreadyExists = filteredList.any { existingDevice ->
-                        existingDevice.deviceSerial == newDevice.deviceSerial &&
-                                existingDevice.serviceType == newDevice.serviceType &&
-                                existingDevice.hostAddresses.any { it in newDevice.hostAddresses }
-                    }
-                    if (!alreadyExists) {
-                        filteredList.add(newDevice)
-                    }
-                }
-                filteredList
-            }
-        }
-    }
-
-    private suspend fun updateExistingDeviceWithBestAddress(
-        existingDevice: Device,
-        discoveredDevices: List<DiscoveredDevice>,
-        serviceType: String
-    ) {
-        val allHostAddresses = discoveredDevices.flatMap { it.hostAddresses }.distinct()
-
-        if (allHostAddresses.isEmpty()) return
-
-        val bestAddress = findBestHostAddress(allHostAddresses)
-
-        if (bestAddress != null) {
-            val port = discoveredDevices.first().port
-            val connectionType = when (serviceType) {
-                AdbMdns.SERVICE_TYPE_ADB -> ConnectionType.TCP
-                AdbMdns.SERVICE_TYPE_TLS_CONNECT -> ConnectionType.TLS
-                else -> ConnectionType.TCP
-            }
-
-            val newEndpoint = ConnectionEndpoint(bestAddress, port, connectionType)
-
-            // Check if this endpoint already exists
-            val existingEndpoint = existingDevice.connectionEndpoints.find {
-                it.host == newEndpoint.host && it.port == newEndpoint.port && it.type == newEndpoint.type
-            }
-
-            if (existingEndpoint == null) {
-                // Add new endpoint or update existing endpoint of same type
-                val updatedEndpoints = existingDevice.connectionEndpoints
-                    .filterNot { it.type == connectionType } // Remove old endpoint of same type
-                    .plus(newEndpoint) // Add new endpoint
-
-                DeviceRepository.updateDevice(existingDevice) {
-                    it.copy(connectionEndpoints = updatedEndpoints)
-                }
-                Timber.d("Updated device ${existingDevice.deviceSerial} ${connectionType.name} address to $bestAddress:$port")
             }
         }
     }
