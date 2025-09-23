@@ -1,5 +1,6 @@
 package com.eiyooooo.adblink.data
 
+import android.hardware.usb.UsbDevice
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -23,14 +24,14 @@ data class DeviceEntity(
     val preferOpus: Boolean
 ) {
 
-    fun toDevice() = Device(
+    fun toDevice(usbDevice: UsbDevice? = null) = Device(
         uuid = uuid,
         isUnidentified = isUnidentified,
         deviceBrand = deviceBrand,
         deviceName = deviceName,
         deviceSerial = deviceSerial,
         name = name,
-        usbDevice = null,
+        usbDevice = usbDevice,
         connectionEndpoints = connectionEndpoints,
         tlsName = tlsName,
         maxSize = maxSize,
