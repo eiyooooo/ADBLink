@@ -85,13 +85,13 @@ fun DeviceCard(
         ConnectionState.CONNECTING_AWAITING_AUTHORIZATION -> stringResource(R.string.connection_awaiting_permission)
         ConnectionState.CONNECTED_USB -> stringResource(R.string.connected_via_usb)
         ConnectionState.CONNECTED_TLS -> {
-            device.tlsHostPort?.let {
+            device.lastConnectedEndpoint?.let {
                 stringResource(R.string.connected_via_tls, "${it.host}:${it.port}")
             } ?: stringResource(R.string.connected_via_tls_no_host_port)
         }
 
         ConnectionState.CONNECTED_TCP -> {
-            device.tcpHostPort?.let {
+            device.lastConnectedEndpoint?.let {
                 stringResource(R.string.connected_via_tcp, "${it.host}:${it.port}")
             } ?: stringResource(R.string.connected_via_tcp_no_host_port)
         }

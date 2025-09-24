@@ -16,6 +16,7 @@ data class Device(
     // connection information
     @Transient val usbDevice: UsbDevice? = null,
     val connectionEndpoints: List<ConnectionEndpoint>,
+    val lastConnectedEndpoint: ConnectionEndpoint?,
     val tlsName: String?,
     // cast configuration
     val maxSize: Int,
@@ -34,6 +35,7 @@ data class Device(
             deviceSerial: String = "",
             usbDevice: UsbDevice? = null,
             connectionEndpoints: List<ConnectionEndpoint> = emptyList(),
+            lastConnectedEndpoint: ConnectionEndpoint? = null,
             tlsName: String? = null
         ): Device {
             return Device(
@@ -45,6 +47,7 @@ data class Device(
                 name = "$deviceBrand $deviceName".trim(),
                 usbDevice = usbDevice,
                 connectionEndpoints = connectionEndpoints,
+                lastConnectedEndpoint = lastConnectedEndpoint,
                 tlsName = tlsName,
                 maxSize = Preferences.defaultCastMaxSize,
                 maxFps = Preferences.defaultCastMaxFps,

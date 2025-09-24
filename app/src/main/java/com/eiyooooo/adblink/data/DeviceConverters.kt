@@ -23,4 +23,18 @@ class DeviceConverters {
             null
         }
     }
+
+    @TypeConverter
+    fun fromConnectionEndpoint(endpoint: ConnectionEndpoint?): String? {
+        return endpoint?.let { json.encodeToString(it) }
+    }
+
+    @TypeConverter
+    fun toConnectionEndpoint(endpointString: String?): ConnectionEndpoint? {
+        return try {
+            endpointString?.let { json.decodeFromString(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

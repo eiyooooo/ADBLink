@@ -1,6 +1,5 @@
 package com.eiyooooo.adblink.util
 
-import com.eiyooooo.adblink.data.HostPort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,49 +74,29 @@ fun String.isValidPort(): Boolean {
     return port in 0..65535
 }
 
-fun String.parseHostPort(): HostPort? {
+fun String.parseHostPort(): Pair<String, Int>? {
     if (isBlank()) return null
 
-    val parts = split(":")
-    if (parts.size != 2) return null
+    val host: String
+    val port: String
 
-    val host = parts[0].trim()
-    val port = parts[1].trim()
+    if (startsWith("[")) {
+        val closingIndex = indexOf(']')
+        if (closingIndex == -1 || closingIndex + 1 >= length || this[closingIndex + 1] != ':') {
+            return null
+        }
+        host = substring(1, closingIndex).trim()
+        port = substring(closingIndex + 2).trim()
+    } else {
+        val idx = lastIndexOf(':')
+        if (idx == -1) return null
+        host = substring(0, idx).trim()
+        port = substring(idx + 1).trim()
+    }
 
     if (!host.isValidHostAddress() || !port.isValidPort()) return null
 
-    return HostPort(host, port.toInt())
-}
-
-suspend fun measureLatencyToHost(hostAddress: String): Long? = withContext(Dispatchers.IO) {
-    return@withContext try {
-        val latency = measureTimeMillis {
-            val address = InetAddress.getByName(hostAddress)
-            address.isReachable(2000) // 2 second timeout
-        }
-        latency
-    } catch (e: Exception) {
-        Timber.w(e, "Failed to measure latency to $hostAddress")
-        null
-    }
-}
-
-suspend fun findBestHostAddress(hostAddresses: List<String>): String? {
-    if (hostAddresses.isEmpty()) return null
-    if (hostAddresses.size == 1) return hostAddresses.first()
-
-    var bestAddress: String? = null
-    var bestLatency = Long.MAX_VALUE
-
-    for (address in hostAddresses) {
-        val latency = measureLatencyToHost(address)
-        if (latency != null && latency < bestLatency) {
-            bestLatency = latency
-            bestAddress = address
-        }
-    }
-
-    return bestAddress ?: hostAddresses.first()
+    return host to port.toInt()
 }
 
 suspend fun testLatency(

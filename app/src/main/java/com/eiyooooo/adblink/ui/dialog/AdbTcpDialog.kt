@@ -34,9 +34,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.data.HostPort
+import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.ui.component.BubbleMessage
 import com.eiyooooo.adblink.util.isValidHostAddress
 import com.eiyooooo.adblink.util.isValidPort
@@ -122,20 +123,20 @@ fun AdbTcpDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
                                 message = context.getString(R.string.invalid_host_or_port)
                                 return@ConnectTab
                             }
-                            val tcpHostPort = HostPort(host, port.toInt())
+                            val tcpEndpoint = ConnectionEndpoint(host, port.toInt(), ConnectionType.TCP)
                             scope.launch {
                                 val existingDevice = DeviceRepository.devices.first().find {
-                                    it.tcpHostPort == tcpHostPort
+                                    it.connectionEndpoints.any { endpoint ->
+                                        endpoint.type == ConnectionType.TCP
+                                                && endpoint.host == tcpEndpoint.host
+                                                && endpoint.port == tcpEndpoint.port
+                                    }
                                 }
                                 if (existingDevice == null) {
                                     val device = Device.createWithDefaults(
-                                        deviceBrand = "",
                                         deviceName = host,
-                                        deviceSerial = "",
-                                        usbDevice = null,
-                                        tcpHostPort = tcpHostPort,
-                                        tlsName = null,
-                                        tlsHostPort = null
+                                        connectionEndpoints = listOf(tcpEndpoint),
+                                        lastConnectedEndpoint = tcpEndpoint
                                     )
                                     DeviceRepository.addDevice(device)
                                     Timber.d("Added device to repository via AdbTcpDialog: $host:$port")
