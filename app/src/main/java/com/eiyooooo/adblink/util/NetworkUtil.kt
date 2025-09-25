@@ -1,6 +1,7 @@
 package com.eiyooooo.adblink.util
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -134,11 +135,13 @@ suspend fun testMultipleLatencies(
     port: Int,
     timeoutMs: Int = 3000,
     onLatencyResult: (String, IpLatency) -> Unit
-) = withContext(Dispatchers.IO) {
+) = coroutineScope {
     ipAddresses.forEach { ip ->
-        launch {
+        launch(Dispatchers.IO) {
             val result = testLatency(ip, port, timeoutMs)
-            onLatencyResult(ip, result)
+            withContext(Dispatchers.Main) {
+                onLatencyResult(ip, result)
+            }
         }
     }
 }
