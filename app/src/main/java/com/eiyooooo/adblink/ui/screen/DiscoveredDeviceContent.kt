@@ -37,7 +37,7 @@ import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.ui.component.info.DetailInfoRow
-import com.eiyooooo.adblink.ui.component.info.HostAddressReorderableList
+import com.eiyooooo.adblink.ui.component.info.HostAddressListCard
 
 @Composable
 fun DiscoveredDeviceContent(
@@ -138,7 +138,7 @@ fun DiscoveredDeviceContent(
         }
 
         if (ipAddressList.isNotEmpty()) {
-            HostAddressReorderableList(
+            HostAddressListCard(
                 addresses = ipAddressList,
                 port = discoveredDevice.port,
                 showAddButton = true

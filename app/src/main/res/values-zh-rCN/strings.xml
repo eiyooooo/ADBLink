@@ -54,14 +54,10 @@
     <string name="view_discovered_devices">查看设备</string>
     <string name="add_device">添加设备</string>
     <string name="host_addresses_order">主机地址优先级排序</string>
-    <string name="host_addresses_add_button">添加主机地址</string>
-    <string name="host_addresses_add_title">添加主机地址</string>
-    <string name="host_addresses_invalid_host">请输入有效的主机地址</string>
-    <string name="host_addresses_already_exists">主机地址已存在</string>
     <string name="move_up">向上移动</string>
     <string name="move_down">向下移动</string>
-    <string name="latency_unknown">未知</string>
-    <string name="remove_ip_address">移除IP地址</string>
+    <string name="add_host_address">添加主机地址</string>
+    <string name="remove_host_address">移除主机地址</string>
     <string name="reorder_handle">拖动排序</string>
     <string name="view_details">查看详情</string>
     <string name="device_details">设备详情</string>
@@ -112,6 +108,9 @@
     <string name="confirm_delete_title">确认删除</string>
     <string name="confirm_delete_message">您确定要删除设备 “%1$s” 吗？</string>
 
+    <string name="unknown">未知</string>
+    <string name="invalid_host">无效的主机地址</string>
+    <string name="host_addresses_already_exists">主机地址已存在</string>
     <string name="invalid_host_or_port">无效的主机地址或端口号</string>
     <string name="invalid_host_port_code">无效的主机地址、端口或配对码</string>
     <string name="device_already_exists">设备已存在</string>

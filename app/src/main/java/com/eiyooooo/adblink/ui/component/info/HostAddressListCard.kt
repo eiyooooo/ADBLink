@@ -4,19 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,7 +55,7 @@ import com.eiyooooo.adblink.util.testMultipleLatencies
 import sh.calvin.reorderable.ReorderableColumn
 
 @Composable
-fun HostAddressReorderableList(
+fun HostAddressListCard(
     addresses: SnapshotStateList<String>,
     port: Int,
     showAddButton: Boolean,
@@ -124,16 +121,12 @@ fun HostAddressReorderableList(
                             addErrorMessage = null
                             showAddDialog = true
                         },
-                        shape = MaterialTheme.shapes.large,
-                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
                         modifier = Modifier.height(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.add_host_address)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = stringResource(R.string.host_addresses_add_button))
                     }
                 }
             }
@@ -148,7 +141,7 @@ fun HostAddressReorderableList(
                     },
                     title = {
                         Text(
-                            text = stringResource(R.string.host_addresses_add_title),
+                            text = stringResource(R.string.add_host_address),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -175,7 +168,7 @@ fun HostAddressReorderableList(
                         }
                     },
                     confirmButton = {
-                        val invalidHostString = stringResource(R.string.host_addresses_invalid_host)
+                        val invalidHostString = stringResource(R.string.invalid_host)
                         val alreadyExistsString = stringResource(R.string.host_addresses_already_exists)
                         TextButton(
                             onClick = {
@@ -322,7 +315,7 @@ fun HostAddressReorderableList(
 
                                         else -> {
                                             Text(
-                                                text = stringResource(R.string.latency_unknown),
+                                                text = stringResource(R.string.unknown),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -367,7 +360,7 @@ fun HostAddressReorderableList(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Filled.Delete,
-                                                contentDescription = stringResource(R.string.remove_ip_address)
+                                                contentDescription = stringResource(R.string.remove_host_address)
                                             )
                                         }
 

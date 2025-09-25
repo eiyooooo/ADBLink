@@ -54,14 +54,10 @@
     <string name="view_discovered_devices">View Devices</string>
     <string name="add_device">Add device</string>
     <string name="host_addresses_order">Host Address Priority Order</string>
-    <string name="host_addresses_add_button">Add host address</string>
-    <string name="host_addresses_add_title">Add Host Address</string>
-    <string name="host_addresses_invalid_host">Enter a valid host address</string>
-    <string name="host_addresses_already_exists">Host address already exists</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
-    <string name="latency_unknown">Unknown</string>
-    <string name="remove_ip_address">Remove IP address</string>
+    <string name="add_host_address">Add Host address</string>
+    <string name="remove_host_address">Remove Host address</string>
     <string name="reorder_handle">Drag to reorder</string>
     <string name="view_details">View details</string>
     <string name="device_details">Device Details</string>
@@ -112,6 +108,9 @@
     <string name="confirm_delete_title">Confirm Delete</string>
     <string name="confirm_delete_message">Are you sure you want to delete device \"%1$s\"?</string>
 
+    <string name="unknown">Unknown</string>
+    <string name="invalid_host">Enter a valid host address</string>
+    <string name="host_addresses_already_exists">Host address already exists</string>
     <string name="invalid_host_or_port">Invalid host address or port number</string>
     <string name="invalid_host_port_code">Invalid host address, port, or pairing code</string>
     <string name="device_already_exists">Device already exists</string>
