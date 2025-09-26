@@ -21,10 +21,8 @@ import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
-import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.ui.navigation.NavRoutes
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -138,24 +136,16 @@ private fun DeviceDetailScreenContent(
                 DiscoveredDeviceContent(
                     discoveredDevice = deviceDetailType.discoveredDevice,
                     isAddingDevice = isAddingDevice,
-                    onAddDevice = { discoveredDevice, selectedIpList ->
+                    onAddDevice = { discoveredDevice, selectedEndpoints ->
                         if (!isAddingDevice) {
                             isAddingDevice = true
                             coroutineScope.launch {
                                 try {
-                                    // Create connection endpoints from the selected IP list
-                                    val connectionEndpoints = selectedIpList.map { ipAddress ->
-                                        val connectionType = when (discoveredDevice.serviceType) {
-                                            AdbDiscoverServiceType.ADB_TCP -> ConnectionType.TCP
-                                            AdbDiscoverServiceType.ADB_TLS_CONNECT,
-                                            AdbDiscoverServiceType.ADB_TLS_PAIRING -> ConnectionType.TLS
+                                    val connectionEndpoints = selectedEndpoints
+                                        .map { endpoint ->
+                                            endpoint.copy(lastUsedTime = 0L)
                                         }
-                                        ConnectionEndpoint(
-                                            host = ipAddress,
-                                            port = discoveredDevice.port,
-                                            type = connectionType
-                                        )
-                                    }
+                                        .distinctBy { Triple(it.host.lowercase(), it.port, it.type) }
 
                                     val device = Device.createWithDefaults(
                                         deviceBrand = "",
@@ -164,8 +154,8 @@ private fun DeviceDetailScreenContent(
                                         usbDevice = null,
                                         connectionEndpoints = connectionEndpoints,
                                         lastConnectedEndpoint = connectionEndpoints.firstOrNull(),
-                                        tlsName = if (discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TLS_CONNECT
-                                            || discoveredDevice.serviceType == AdbDiscoverServiceType.ADB_TLS_PAIRING
+                                        tlsName = if (discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_CONNECT)
+                                            || discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_PAIRING)
                                         ) discoveredDevice.serviceName else null
                                     )
 

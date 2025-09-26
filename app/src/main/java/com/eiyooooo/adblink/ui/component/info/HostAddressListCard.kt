@@ -22,7 +22,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -49,6 +48,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.data.ConnectionEndpoint
+import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.util.IpLatency
 import com.eiyooooo.adblink.util.isValidHostAddress
 import com.eiyooooo.adblink.util.testMultipleLatencies
@@ -56,19 +57,29 @@ import sh.calvin.reorderable.ReorderableColumn
 
 @Composable
 fun HostAddressListCard(
-    addresses: SnapshotStateList<String>,
-    port: Int,
+    endpoints: SnapshotStateList<ConnectionEndpoint>,
     showAddButton: Boolean,
     modifier: Modifier = Modifier
 ) {
     var listVersion by remember { mutableIntStateOf(0) }
-    var ipLatencies by remember { mutableStateOf<Map<String, IpLatency>>(emptyMap()) }
-    var testingIps by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var endpointLatencies by remember { mutableStateOf<Map<String, IpLatency>>(emptyMap()) }
+    var testingKeys by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var hostInput by remember { mutableStateOf("") }
     var addErrorMessage by remember { mutableStateOf<String?>(null) }
 
-    val membershipSnapshot by remember { derivedStateOf { addresses.toSet() } }
+    val membershipSnapshot by remember {
+        derivedStateOf { endpoints.map { endpointKey(it) }.toSet() }
+    }
+
+    LaunchedEffect(Unit) {
+        val deduped = endpoints.distinctBy { endpointKey(it) }
+        if (deduped.size != endpoints.size) {
+            endpoints.clear()
+            endpoints.addAll(deduped)
+            listVersion++
+        }
+    }
 
     LaunchedEffect(showAddButton) {
         if (!showAddButton) {
@@ -76,20 +87,25 @@ fun HostAddressListCard(
         }
     }
 
-    LaunchedEffect(membershipSnapshot, port) {
-        val snapshot = addresses.toList()
+    LaunchedEffect(membershipSnapshot) {
+        val snapshot = endpoints.toList()
         if (snapshot.isEmpty()) {
-            ipLatencies = emptyMap()
-            testingIps = emptySet()
+            endpointLatencies = emptyMap()
+            testingKeys = emptySet()
             return@LaunchedEffect
         }
 
-        ipLatencies = ipLatencies.filterKeys { it in snapshot }
-        testingIps = snapshot.toSet()
+        endpointLatencies = endpointLatencies.filterKeys { it in membershipSnapshot }
+        testingKeys = membershipSnapshot
 
-        testMultipleLatencies(snapshot, port) { ip, latency ->
-            ipLatencies = ipLatencies + (ip to latency)
-            testingIps = testingIps - ip
+        snapshot.groupBy { it.type to it.port }.forEach { (typePort, groupedEndpoints) ->
+            val (type, port) = typePort
+            val hosts = groupedEndpoints.map { it.host }.distinctBy { it.lowercase() }
+            testMultipleLatencies(hosts, port) { host, latency ->
+                val key = endpointKey(type, host, port)
+                endpointLatencies = endpointLatencies + (key to latency)
+                testingKeys = testingKeys - key
+            }
         }
     }
 
@@ -175,20 +191,32 @@ fun HostAddressListCard(
                                 val trimmedHost = hostInput.trim()
                                 hostInput = trimmedHost
 
+                                val defaultTemplate = endpoints.firstOrNull()
+
                                 when {
                                     trimmedHost.isEmpty() || !trimmedHost.isValidHostAddress() -> {
                                         addErrorMessage = invalidHostString
                                     }
 
-                                    addresses.any { it.equals(trimmedHost, ignoreCase = true) } -> {
+                                    endpoints.any { it.host.equals(trimmedHost, ignoreCase = true) } -> {
                                         addErrorMessage = alreadyExistsString
                                     }
 
                                     else -> {
-                                        addresses.add(trimmedHost)
+                                        val newEndpoint = ConnectionEndpoint(
+                                            host = trimmedHost,
+                                            port = defaultTemplate?.port ?: DEFAULT_ADB_PORT,
+                                            type = defaultTemplate?.type ?: ConnectionType.TCP
+                                        )
+                                        val newKey = endpointKey(newEndpoint)
+                                        if (endpoints.any { endpointKey(it) == newKey }) {
+                                            addErrorMessage = alreadyExistsString
+                                            return@TextButton
+                                        }
+                                        endpoints.add(newEndpoint)
                                         listVersion++
-                                        ipLatencies = ipLatencies - trimmedHost
-                                        testingIps = testingIps + trimmedHost
+                                        endpointLatencies = endpointLatencies - newKey
+                                        testingKeys = testingKeys + newKey
                                         showAddDialog = false
                                         addErrorMessage = null
                                         hostInput = ""
@@ -217,26 +245,27 @@ fun HostAddressListCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp),
-                list = addresses.toList(),
+                list = endpoints.toList(),
                 onSettle = { fromIndex, toIndex ->
-                    if (addresses.isEmpty()) return@ReorderableColumn
+                    if (endpoints.isEmpty()) return@ReorderableColumn
 
-                    val clampedFrom = fromIndex.coerceIn(0, addresses.lastIndex)
-                    val clampedTo = toIndex.coerceIn(0, addresses.size)
+                    val clampedFrom = fromIndex.coerceIn(0, endpoints.lastIndex)
+                    val clampedTo = toIndex.coerceIn(0, endpoints.size)
 
-                    if (clampedFrom == clampedTo || clampedFrom !in addresses.indices) {
+                    if (clampedFrom == clampedTo || clampedFrom !in endpoints.indices) {
                         return@ReorderableColumn
                     }
 
-                    val item = addresses.removeAt(clampedFrom)
-                    val insertIndex = clampedTo.coerceIn(0, addresses.size)
+                    val item = endpoints.removeAt(clampedFrom)
+                    val insertIndex = clampedTo.coerceIn(0, endpoints.size)
 
-                    addresses.add(insertIndex, item)
+                    endpoints.add(insertIndex, item)
                     listVersion++
                 },
                 verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) { index, ip, _ ->
-                key("$ip-$index-$listVersion") {
+            ) { index, endpoint, _ ->
+                val itemKey = endpointKey(endpoint)
+                key("$itemKey-$index-$listVersion") {
                     ReorderableItem {
                         val moveUpLabel = stringResource(R.string.move_up)
                         val moveDownLabel = stringResource(R.string.move_down)
@@ -248,10 +277,10 @@ fun HostAddressListCard(
                                         CustomAccessibilityAction(
                                             label = moveUpLabel,
                                             action = {
-                                                val currentIndex = addresses.indexOf(ip)
+                                                val currentIndex = endpoints.indexOfFirst { endpointKey(it) == itemKey }
                                                 if (currentIndex > 0) {
-                                                    val movedItem = addresses.removeAt(currentIndex)
-                                                    addresses.add(currentIndex - 1, movedItem)
+                                                    val movedItem = endpoints.removeAt(currentIndex)
+                                                    endpoints.add(currentIndex - 1, movedItem)
                                                     listVersion++
                                                     true
                                                 } else {
@@ -262,10 +291,10 @@ fun HostAddressListCard(
                                         CustomAccessibilityAction(
                                             label = moveDownLabel,
                                             action = {
-                                                val currentIndex = addresses.indexOf(ip)
-                                                if (currentIndex >= 0 && currentIndex < addresses.lastIndex) {
-                                                    val movedItem = addresses.removeAt(currentIndex)
-                                                    addresses.add(currentIndex + 1, movedItem)
+                                                val currentIndex = endpoints.indexOfFirst { endpointKey(it) == itemKey }
+                                                if (currentIndex >= 0 && currentIndex < endpoints.lastIndex) {
+                                                    val movedItem = endpoints.removeAt(currentIndex)
+                                                    endpoints.add(currentIndex + 1, movedItem)
                                                     listVersion++
                                                     true
                                                 } else {
@@ -279,28 +308,63 @@ fun HostAddressListCard(
                             tonalElevation = 2.dp,
                             color = MaterialTheme.colorScheme.surface
                         ) {
-                            ListItem(
-                                headlineContent = {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    tonalElevation = 0.dp,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = "${index + 1}",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Text(
-                                        text = ip,
+                                        text = endpoint.host,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                },
-                                supportingContent = {
+
+                                    val connectionTypeLabel = when (endpoint.type) {
+                                        ConnectionType.TCP -> stringResource(R.string.connection_type_tcp)
+                                        ConnectionType.TLS -> stringResource(R.string.connection_type_tls_connect)
+                                    }
+                                    val connectionInfo = "$connectionTypeLabel · ${endpoint.port}"
+
                                     when {
-                                        testingIps.contains(ip) -> {
+                                        testingKeys.contains(itemKey) -> {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
+                                                Text(
+                                                    text = connectionInfo,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
                                                 CircularProgressIndicator(
                                                     modifier = Modifier.size(16.dp),
                                                     strokeWidth = 2.dp,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
-
                                                 Text(
                                                     text = stringResource(R.string.testing_latency),
                                                     style = MaterialTheme.typography.bodySmall,
@@ -309,77 +373,85 @@ fun HostAddressListCard(
                                             }
                                         }
 
-                                        ipLatencies[ip] != null -> {
-                                            LatencyIndicator(latency = ipLatencies.getValue(ip))
+                                        endpointLatencies[itemKey] != null -> {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = connectionInfo,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.alignByBaseline()
+                                                )
+                                                LatencyIndicator(
+                                                    latency = endpointLatencies.getValue(itemKey),
+                                                    modifier = Modifier.alignByBaseline()
+                                                )
+                                            }
                                         }
 
                                         else -> {
-                                            Text(
-                                                text = stringResource(R.string.unknown),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                },
-                                leadingContent = {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        tonalElevation = 0.dp,
-                                        modifier = Modifier.size(40.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = "${index + 1}",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                    }
-                                },
-                                trailingContent = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        IconButton(
-                                            onClick = {
-                                                if (index in addresses.indices) {
-                                                    val removedIp = addresses.removeAt(index)
-                                                    ipLatencies = ipLatencies - removedIp
-                                                    testingIps = testingIps - removedIp
-                                                    listVersion++
-                                                }
-                                            },
-                                            colors = IconButtonDefaults.iconButtonColors(
-                                                contentColor = MaterialTheme.colorScheme.error
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Filled.Delete,
-                                                contentDescription = stringResource(R.string.remove_host_address)
-                                            )
-                                        }
-
-                                        IconButton(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .draggableHandle()
-                                                .clearAndSetSemantics { },
-                                            onClick = {}
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Filled.DragHandle,
-                                                contentDescription = stringResource(R.string.reorder_handle),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = connectionInfo,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.alignByBaseline()
+                                                )
+                                                Text(
+                                                    text = stringResource(R.string.unknown),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.alignByBaseline()
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            )
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            if (index in endpoints.indices) {
+                                                val removedEndpoint = endpoints.removeAt(index)
+                                                val removedKey = endpointKey(removedEndpoint)
+                                                endpointLatencies = endpointLatencies - removedKey
+                                                testingKeys = testingKeys - removedKey
+                                                listVersion++
+                                            }
+                                        },
+                                        colors = IconButtonDefaults.iconButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = stringResource(R.string.remove_host_address)
+                                        )
+                                    }
+
+                                    IconButton(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .draggableHandle()
+                                            .clearAndSetSemantics { },
+                                        onClick = {}
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.DragHandle,
+                                            contentDescription = stringResource(R.string.reorder_handle),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -387,3 +459,19 @@ fun HostAddressListCard(
         }
     }
 }
+
+private fun endpointKey(endpoint: ConnectionEndpoint): String {
+    return endpointKey(endpoint.type, endpoint.host, endpoint.port)
+}
+
+private fun endpointKey(type: ConnectionType, host: String, port: Int): String {
+    return buildString {
+        append(type.name)
+        append(":")
+        append(host.lowercase())
+        append(":")
+        append(port)
+    }
+}
+
+private const val DEFAULT_ADB_PORT = 5555

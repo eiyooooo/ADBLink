@@ -3,16 +3,34 @@ package com.eiyooooo.adblink.adb.discover
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
+import com.eiyooooo.adblink.data.ConnectionEndpoint
+import com.eiyooooo.adblink.entity.ConnectionType
 import timber.log.Timber
 
 data class DiscoveredDevice(
     val deviceSerial: String,
     val serviceName: String,
-    val serviceType: AdbDiscoverServiceType,
-    val hostAddresses: List<String>,
-    val port: Int,
-    val serviceInfo: NsdServiceInfo
+    val connectionEndpoints: List<ConnectionEndpoint>,
+    val serviceTypes: Set<AdbDiscoverServiceType>
 ) {
+
+    fun mergeWith(other: DiscoveredDevice): DiscoveredDevice {
+        val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints)
+            .distinctBy { Triple(it.host, it.port, it.type) }
+            .tlsFirst()
+
+        val preferredServiceName = when {
+            other.connectionEndpoints.any { it.type == ConnectionType.TLS } -> other.serviceName
+            connectionEndpoints.any { it.type == ConnectionType.TLS } -> serviceName
+            else -> other.serviceName.ifBlank { serviceName }
+        }
+
+        return copy(
+            serviceName = preferredServiceName,
+            connectionEndpoints = mergedEndpoints,
+            serviceTypes = serviceTypes + other.serviceTypes
+        )
+    }
 
     companion object {
         /**
@@ -49,14 +67,44 @@ data class DiscoveredDevice(
                 return null
             }
 
+            val connectionType = when (serviceType) {
+                AdbDiscoverServiceType.ADB_TCP -> ConnectionType.TCP
+                AdbDiscoverServiceType.ADB_TLS_CONNECT,
+                AdbDiscoverServiceType.ADB_TLS_PAIRING -> ConnectionType.TLS
+            }
+
+            val endpoints = hostAddresses.map { host ->
+                ConnectionEndpoint(
+                    host = host,
+                    port = serviceInfo.port,
+                    type = connectionType
+                )
+            }.distinctBy { Triple(it.host, it.port, it.type) }
+                .tlsFirst()
+
+            if (endpoints.isEmpty()) {
+                Timber.w("No valid connection endpoints found for device: $deviceSerial")
+                return null
+            }
+
             return DiscoveredDevice(
                 deviceSerial = deviceSerial,
                 serviceName = serviceInfo.serviceName,
-                serviceType = serviceType,
-                hostAddresses = hostAddresses,
-                port = serviceInfo.port,
-                serviceInfo = serviceInfo
+                connectionEndpoints = endpoints,
+                serviceTypes = setOf(serviceType)
             )
         }
     }
+}
+
+private fun List<ConnectionEndpoint>.tlsFirst(): List<ConnectionEndpoint> {
+    if (isEmpty()) {
+        return this
+    }
+    val containsTls = any { it.type == ConnectionType.TLS }
+    val containsNonTls = any { it.type != ConnectionType.TLS }
+    if (!containsTls || !containsNonTls) {
+        return this
+    }
+    return sortedWith(compareBy { it.type != ConnectionType.TLS })
 }

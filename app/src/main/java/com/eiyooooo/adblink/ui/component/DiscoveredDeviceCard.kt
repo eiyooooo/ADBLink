@@ -38,19 +38,25 @@ fun DiscoveredDeviceCard(
     onClick: (DiscoveredDevice) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val icon = when (device.serviceType) {
-        AdbDiscoverServiceType.ADB_TCP -> Icons.Filled.Wifi
-        AdbDiscoverServiceType.ADB_TLS_CONNECT -> Icons.Filled.Security
-        AdbDiscoverServiceType.ADB_TLS_PAIRING -> Icons.Filled.Security
+    val icon = when {
+        device.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_CONNECT) -> Icons.Filled.Security
+        device.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_PAIRING) -> Icons.Filled.Security
+        else -> Icons.Filled.Wifi
     }
 
     val backgroundColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
 
-    val connectionTypeText = when (device.serviceType) {
-        AdbDiscoverServiceType.ADB_TCP -> stringResource(R.string.connection_type_tcp)
-        AdbDiscoverServiceType.ADB_TLS_CONNECT -> stringResource(R.string.connection_type_tls_connect)
-        AdbDiscoverServiceType.ADB_TLS_PAIRING -> stringResource(R.string.connection_type_tls_pairing)
-    }
+    val connectionTypeText = buildList {
+        if (device.serviceTypes.contains(AdbDiscoverServiceType.ADB_TCP)) {
+            add(stringResource(R.string.connection_type_tcp))
+        }
+        if (device.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_CONNECT)) {
+            add(stringResource(R.string.connection_type_tls_connect))
+        }
+        if (device.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_PAIRING)) {
+            add(stringResource(R.string.connection_type_tls_pairing))
+        }
+    }.takeIf { it.isNotEmpty() }?.joinToString(separator = " · ") ?: stringResource(R.string.connection_type_tcp)
 
     Card(
         modifier = modifier

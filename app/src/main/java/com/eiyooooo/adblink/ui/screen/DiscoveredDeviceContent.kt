@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
+import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.ui.component.info.DetailInfoRow
 import com.eiyooooo.adblink.ui.component.info.HostAddressListCard
 
@@ -43,23 +44,44 @@ import com.eiyooooo.adblink.ui.component.info.HostAddressListCard
 fun DiscoveredDeviceContent(
     discoveredDevice: DiscoveredDevice,
     isAddingDevice: Boolean = false,
-    onAddDevice: (DiscoveredDevice, List<String>) -> Unit
+    onAddDevice: (DiscoveredDevice, List<ConnectionEndpoint>) -> Unit
 ) {
-    val icon = when (discoveredDevice.serviceType) {
-        AdbDiscoverServiceType.ADB_TCP -> Icons.Filled.Wifi
-        AdbDiscoverServiceType.ADB_TLS_CONNECT -> Icons.Filled.Security
-        AdbDiscoverServiceType.ADB_TLS_PAIRING -> Icons.Filled.Security
+    val icon = when {
+        discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_CONNECT) -> Icons.Filled.Security
+        discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_PAIRING) -> Icons.Filled.Security
+        else -> Icons.Filled.Wifi
     }
 
     val backgroundColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
 
-    val ipAddressList = remember { mutableStateListOf<String>() }
+    val connectionEndpointList = remember { mutableStateListOf<ConnectionEndpoint>() }
 
-    LaunchedEffect(discoveredDevice.hostAddresses) {
-        if (ipAddressList.isEmpty()) {
-            ipAddressList.addAll(discoveredDevice.hostAddresses)
+    LaunchedEffect(discoveredDevice.connectionEndpoints) {
+        val discoveredEndpoints = discoveredDevice.connectionEndpoints
+            .distinctBy { endpointKey(it) }
+        if (connectionEndpointList.isEmpty()) {
+            connectionEndpointList.addAll(discoveredEndpoints)
+        } else {
+            val existingKeys = connectionEndpointList.map { endpointKey(it) }.toSet()
+            val toAdd = discoveredEndpoints
+                .filterNot { endpoint -> endpointKey(endpoint) in existingKeys }
+            if (toAdd.isNotEmpty()) {
+                connectionEndpointList.addAll(toAdd)
+            }
         }
     }
+
+    val connectionTypeText = buildList {
+        if (discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TCP)) {
+            add(stringResource(R.string.connection_type_tcp))
+        }
+        if (discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_CONNECT)) {
+            add(stringResource(R.string.connection_type_tls_connect))
+        }
+        if (discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_PAIRING)) {
+            add(stringResource(R.string.connection_type_tls_pairing))
+        }
+    }.takeIf { it.isNotEmpty() }?.joinToString(separator = " · ") ?: stringResource(R.string.connection_type_tcp)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -103,11 +125,7 @@ fun DiscoveredDeviceContent(
                         )
 
                         Text(
-                            text = when (discoveredDevice.serviceType) {
-                                AdbDiscoverServiceType.ADB_TCP -> stringResource(R.string.connection_type_tcp)
-                                AdbDiscoverServiceType.ADB_TLS_CONNECT -> stringResource(R.string.connection_type_tls_connect)
-                                AdbDiscoverServiceType.ADB_TLS_PAIRING -> stringResource(R.string.connection_type_tls_pairing)
-                            },
+                            text = connectionTypeText,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -125,11 +143,6 @@ fun DiscoveredDeviceContent(
                     )
 
                     DetailInfoRow(
-                        label = stringResource(R.string.device_port_label),
-                        value = discoveredDevice.port.toString()
-                    )
-
-                    DetailInfoRow(
                         label = stringResource(R.string.service_name_label),
                         value = discoveredDevice.serviceName
                     )
@@ -137,10 +150,9 @@ fun DiscoveredDeviceContent(
             }
         }
 
-        if (ipAddressList.isNotEmpty()) {
+        if (connectionEndpointList.isNotEmpty()) {
             HostAddressListCard(
-                addresses = ipAddressList,
-                port = discoveredDevice.port,
+                endpoints = connectionEndpointList,
                 showAddButton = true
             )
         }
@@ -148,10 +160,10 @@ fun DiscoveredDeviceContent(
         Button(
             onClick = {
                 if (!isAddingDevice) {
-                    onAddDevice(discoveredDevice, ipAddressList.toList())
+                    onAddDevice(discoveredDevice, connectionEndpointList.toList())
                 }
             },
-            enabled = ipAddressList.isNotEmpty() && !isAddingDevice,
+            enabled = connectionEndpointList.isNotEmpty() && !isAddingDevice,
             modifier = Modifier.fillMaxWidth()
         ) {
             if (isAddingDevice) {
@@ -178,5 +190,15 @@ fun DiscoveredDeviceContent(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+    }
+}
+
+private fun endpointKey(endpoint: ConnectionEndpoint): String {
+    return buildString {
+        append(endpoint.type)
+        append(":")
+        append(endpoint.host.lowercase())
+        append(":")
+        append(endpoint.port)
     }
 }

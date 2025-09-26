@@ -117,7 +117,7 @@ fun DiscoveredDevicesBannerCard(
                                 .heightIn(max = maxExpandedHeight),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            items(devices) { device ->
+                            items(items = devices, key = { it.deviceSerial }) { device ->
                                 DiscoveredDeviceCard(
                                     device = device,
                                     onClick = onDeviceClick,
@@ -136,7 +136,7 @@ fun DiscoveredDevicesBannerCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            items(devices) { device ->
+                            items(items = devices, key = { it.deviceSerial }) { device ->
                                 DiscoveredDeviceCard(
                                     device = device,
                                     onClick = onDeviceClick,
@@ -153,7 +153,7 @@ fun DiscoveredDevicesBannerCard(
                                 .heightIn(max = maxExpandedHeight),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            items(devices) { device ->
+                            items(items = devices, key = { it.deviceSerial }) { device ->
                                 DiscoveredDeviceCard(
                                     device = device,
                                     onClick = onDeviceClick,
