@@ -470,7 +470,7 @@ object AdbManager {
                     deviceBrand = deviceBrand.takeIf { it.isNotEmpty() } ?: device.deviceBrand,
                     deviceName = deviceName.takeIf { it.isNotEmpty() } ?: device.deviceName,
                     deviceSerial = deviceSerial.takeIf { it.isNotEmpty() } ?: device.deviceSerial,
-                    name = "$deviceBrand $deviceName".trim().takeIf { it.isNotEmpty() } ?: device.name
+                    name = device.name.takeIf { it.isNotEmpty() } ?: "$deviceBrand $deviceName".trim()
                 )
 
                 DeviceRepository.updateDevice(device) { updatedDevice }
