@@ -15,9 +15,9 @@ data class DiscoveredDevice(
 ) {
 
     fun mergeWith(other: DiscoveredDevice): DiscoveredDevice {
-        val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints)
-            .distinctBy { Triple(it.host, it.port, it.type) }
-            .tlsFirst()
+        val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints).distinctBy {
+            Triple(it.host, it.port, it.type)
+        }.tlsFirst()
 
         val preferredServiceName = when {
             other.connectionEndpoints.any { it.type == ConnectionType.TLS } -> other.serviceName
@@ -79,8 +79,9 @@ data class DiscoveredDevice(
                     port = serviceInfo.port,
                     type = connectionType
                 )
-            }.distinctBy { Triple(it.host, it.port, it.type) }
-                .tlsFirst()
+            }.distinctBy {
+                Triple(it.host, it.port, it.type)
+            }.tlsFirst()
 
             if (endpoints.isEmpty()) {
                 Timber.w("No valid connection endpoints found for device: $deviceSerial")

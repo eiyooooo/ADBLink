@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 object DiscoveredDeviceManager {
 
@@ -28,10 +29,13 @@ object DiscoveredDeviceManager {
                 devices.reduce { acc, device -> acc.mergeWith(device) }
             }
 
-            val connectionTypeToReplace = when (serviceType) {
-                AdbDiscoverServiceType.ADB_TCP -> ConnectionType.TCP
-                AdbDiscoverServiceType.ADB_TLS_CONNECT -> ConnectionType.TLS
-                AdbDiscoverServiceType.ADB_TLS_PAIRING -> ConnectionType.TLS
+            val connectionTypeToReplace = if (serviceType == AdbDiscoverServiceType.ADB_TCP) {
+                ConnectionType.TCP
+            } else if (serviceType == AdbDiscoverServiceType.ADB_TLS_CONNECT) {
+                ConnectionType.TLS
+            } else {
+                Timber.w("Unexpected service type for connect devices: $serviceType")
+                return@launch
             }
 
             _discoveredConnectDevices.update { currentList ->
@@ -56,11 +60,7 @@ object DiscoveredDeviceManager {
 
                 discoveredDevices.forEach { (serial, newDevice) ->
                     val existing = deviceMap[serial]
-                    deviceMap[serial] = if (existing != null) {
-                        existing.mergeWith(newDevice)
-                    } else {
-                        newDevice
-                    }
+                    deviceMap[serial] = existing?.mergeWith(newDevice) ?: newDevice
                 }
 
                 deviceMap.values.toList()
@@ -72,8 +72,9 @@ object DiscoveredDeviceManager {
         scope.launch {
             val discoveredDevices = infos.mapNotNull { info ->
                 DiscoveredDevice.fromNsdServiceInfo(info)
-            }.groupBy { it.deviceSerial }
-                .map { (_, devices) -> devices.reduce { acc, device -> acc.mergeWith(device) } }
+            }.groupBy { it.deviceSerial }.map { (_, devices) ->
+                devices.reduce { acc, device -> acc.mergeWith(device) }
+            }
 
             _discoveredPairingDevices.update {
                 discoveredDevices
