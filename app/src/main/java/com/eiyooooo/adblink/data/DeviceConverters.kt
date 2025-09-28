@@ -25,14 +25,14 @@ class DeviceConverters {
     }
 
     @TypeConverter
-    fun fromConnectionEndpoint(endpoint: ConnectionEndpoint?): String? {
-        return endpoint?.let { json.encodeToString(it) }
+    fun fromHostList(hosts: List<String>?): String? {
+        return hosts?.let { json.encodeToString(it) }
     }
 
     @TypeConverter
-    fun toConnectionEndpoint(endpointString: String?): ConnectionEndpoint? {
+    fun toHostList(hostsString: String?): List<String>? {
         return try {
-            endpointString?.let { json.decodeFromString(it) }
+            hostsString?.let { json.decodeFromString(it) }
         } catch (_: Exception) {
             null
         }

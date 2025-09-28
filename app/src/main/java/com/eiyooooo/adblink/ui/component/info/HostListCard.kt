@@ -52,31 +52,34 @@ import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.util.IpLatency
 import com.eiyooooo.adblink.util.isValidHostAddress
-import com.eiyooooo.adblink.util.testMultipleLatencies
+import com.eiyooooo.adblink.util.testLatency
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableColumn
 
 @Composable
 fun HostAddressListCard(
-    endpoints: SnapshotStateList<ConnectionEndpoint>,
+    hosts: SnapshotStateList<String>,
+    endpoints: List<ConnectionEndpoint>,
     showAddButton: Boolean,
     modifier: Modifier = Modifier
 ) {
     var listVersion by remember { mutableIntStateOf(0) }
-    var endpointLatencies by remember { mutableStateOf<Map<String, IpLatency>>(emptyMap()) }
-    var testingKeys by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var hostLatencies by remember { mutableStateOf<Map<String, IpLatency>>(emptyMap()) }
+    var testingHosts by remember { mutableStateOf<Set<String>>(emptySet()) }
+
     var showAddDialog by remember { mutableStateOf(false) }
     var hostInput by remember { mutableStateOf("") }
     var addErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val membershipSnapshot by remember {
-        derivedStateOf { endpoints.map { endpointKey(it) }.toSet() }
+        derivedStateOf { hosts.map { hostKey(it) }.toSet() }
     }
 
     LaunchedEffect(Unit) {
-        val deduped = endpoints.distinctBy { endpointKey(it) }
-        if (deduped.size != endpoints.size) {
-            endpoints.clear()
-            endpoints.addAll(deduped)
+        val deduped = hosts.distinctBy { hostKey(it) }
+        if (deduped.size != hosts.size) {
+            hosts.clear()
+            hosts.addAll(deduped)
             listVersion++
         }
     }
@@ -87,24 +90,50 @@ fun HostAddressListCard(
         }
     }
 
-    LaunchedEffect(membershipSnapshot) {
-        val snapshot = endpoints.toList()
-        if (snapshot.isEmpty()) {
-            endpointLatencies = emptyMap()
-            testingKeys = emptySet()
+    LaunchedEffect(membershipSnapshot, endpoints) {
+        val snapshotHosts = hosts
+            .mapNotNull { host -> host.takeIf { it.isNotBlank() } }
+            .distinctBy { hostKey(it) }
+
+        if (snapshotHosts.isEmpty()) {
+            hostLatencies = emptyMap()
+            testingHosts = emptySet()
             return@LaunchedEffect
         }
 
-        endpointLatencies = endpointLatencies.filterKeys { it in membershipSnapshot }
-        testingKeys = membershipSnapshot
+        hostLatencies = hostLatencies.filterKeys { it in membershipSnapshot }
+        testingHosts = membershipSnapshot.toSet()
 
-        snapshot.groupBy { it.type to it.port }.forEach { (typePort, groupedEndpoints) ->
-            val (type, port) = typePort
-            val hosts = groupedEndpoints.map { it.host }.distinctBy { it.lowercase() }
-            testMultipleLatencies(hosts, port) { host, latency ->
-                val key = endpointKey(type, host, port)
-                endpointLatencies = endpointLatencies + (key to latency)
-                testingKeys = testingKeys - key
+        val sortedEndpoints = endpoints.sortedWith(
+            compareBy<ConnectionEndpoint> {
+                it.type != ConnectionType.TLS
+            }.thenBy {
+                it.port
+            }
+        ).distinctBy {
+            it.port
+        }
+
+        if (sortedEndpoints.isEmpty()) {
+            testingHosts = emptySet()
+            return@LaunchedEffect
+        }
+
+        val normalizedHosts = snapshotHosts.map { it.trim() }
+
+        normalizedHosts.forEach { host ->
+            val key = hostKey(host)
+            launch {
+                var latencyResult = IpLatency(host, -1, false)
+                for (endpoint in sortedEndpoints) {
+                    latencyResult = testLatency(host, endpoint.port)
+                    if (latencyResult.isReachable) {
+                        break
+                    }
+                }
+
+                hostLatencies = hostLatencies + (key to latencyResult)
+                testingHosts = testingHosts - key
             }
         }
     }
@@ -191,32 +220,21 @@ fun HostAddressListCard(
                                 val trimmedHost = hostInput.trim()
                                 hostInput = trimmedHost
 
-                                val defaultTemplate = endpoints.firstOrNull()
-
                                 when {
                                     trimmedHost.isEmpty() || !trimmedHost.isValidHostAddress() -> {
                                         addErrorMessage = invalidHostString
                                     }
 
-                                    endpoints.any { it.host.equals(trimmedHost, ignoreCase = true) } -> {
+                                    hosts.any { it.equals(trimmedHost, ignoreCase = true) } -> {
                                         addErrorMessage = alreadyExistsString
                                     }
 
                                     else -> {
-                                        val newEndpoint = ConnectionEndpoint(
-                                            host = trimmedHost,
-                                            port = defaultTemplate?.port ?: DEFAULT_ADB_PORT,
-                                            type = defaultTemplate?.type ?: ConnectionType.TCP
-                                        )
-                                        val newKey = endpointKey(newEndpoint)
-                                        if (endpoints.any { endpointKey(it) == newKey }) {
-                                            addErrorMessage = alreadyExistsString
-                                            return@TextButton
-                                        }
-                                        endpoints.add(newEndpoint)
+                                        hosts.add(trimmedHost)
                                         listVersion++
-                                        endpointLatencies = endpointLatencies - newKey
-                                        testingKeys = testingKeys + newKey
+                                        val newKey = hostKey(trimmedHost)
+                                        hostLatencies = hostLatencies - newKey
+                                        testingHosts = testingHosts + newKey
                                         showAddDialog = false
                                         addErrorMessage = null
                                         hostInput = ""
@@ -245,26 +263,26 @@ fun HostAddressListCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp),
-                list = endpoints.toList(),
+                list = hosts.toList(),
                 onSettle = { fromIndex, toIndex ->
-                    if (endpoints.isEmpty()) return@ReorderableColumn
+                    if (hosts.isEmpty()) return@ReorderableColumn
 
-                    val clampedFrom = fromIndex.coerceIn(0, endpoints.lastIndex)
-                    val clampedTo = toIndex.coerceIn(0, endpoints.size)
+                    val clampedFrom = fromIndex.coerceIn(0, hosts.lastIndex)
+                    val clampedTo = toIndex.coerceIn(0, hosts.size)
 
-                    if (clampedFrom == clampedTo || clampedFrom !in endpoints.indices) {
+                    if (clampedFrom == clampedTo || clampedFrom !in hosts.indices) {
                         return@ReorderableColumn
                     }
 
-                    val item = endpoints.removeAt(clampedFrom)
-                    val insertIndex = clampedTo.coerceIn(0, endpoints.size)
+                    val item = hosts.removeAt(clampedFrom)
+                    val insertIndex = clampedTo.coerceIn(0, hosts.size)
 
-                    endpoints.add(insertIndex, item)
+                    hosts.add(insertIndex, item)
                     listVersion++
                 },
                 verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) { index, endpoint, _ ->
-                val itemKey = endpointKey(endpoint)
+            ) { index, host, _ ->
+                val itemKey = hostKey(host)
                 key("$itemKey-$index-$listVersion") {
                     ReorderableItem {
                         val moveUpLabel = stringResource(R.string.move_up)
@@ -277,10 +295,10 @@ fun HostAddressListCard(
                                         CustomAccessibilityAction(
                                             label = moveUpLabel,
                                             action = {
-                                                val currentIndex = endpoints.indexOfFirst { endpointKey(it) == itemKey }
+                                                val currentIndex = hosts.indexOfFirst { hostKey(it) == itemKey }
                                                 if (currentIndex > 0) {
-                                                    val movedItem = endpoints.removeAt(currentIndex)
-                                                    endpoints.add(currentIndex - 1, movedItem)
+                                                    val movedItem = hosts.removeAt(currentIndex)
+                                                    hosts.add(currentIndex - 1, movedItem)
                                                     listVersion++
                                                     true
                                                 } else {
@@ -291,10 +309,10 @@ fun HostAddressListCard(
                                         CustomAccessibilityAction(
                                             label = moveDownLabel,
                                             action = {
-                                                val currentIndex = endpoints.indexOfFirst { endpointKey(it) == itemKey }
-                                                if (currentIndex >= 0 && currentIndex < endpoints.lastIndex) {
-                                                    val movedItem = endpoints.removeAt(currentIndex)
-                                                    endpoints.add(currentIndex + 1, movedItem)
+                                                val currentIndex = hosts.indexOfFirst { hostKey(it) == itemKey }
+                                                if (currentIndex >= 0 && currentIndex < hosts.lastIndex) {
+                                                    val movedItem = hosts.removeAt(currentIndex)
+                                                    hosts.add(currentIndex + 1, movedItem)
                                                     listVersion++
                                                     true
                                                 } else {
@@ -334,37 +352,27 @@ fun HostAddressListCard(
 
                                 Column(
                                     modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    verticalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
                                     Text(
-                                        text = endpoint.host,
+                                        text = host,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
 
-                                    val connectionTypeLabel = when (endpoint.type) {
-                                        ConnectionType.TCP -> stringResource(R.string.connection_type_tcp)
-                                        ConnectionType.TLS -> stringResource(R.string.connection_type_tls_connect)
-                                    }
-                                    val connectionInfo = "$connectionTypeLabel · ${endpoint.port}"
-
                                     when {
-                                        testingKeys.contains(itemKey) -> {
+                                        testingHosts.contains(itemKey) -> {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Text(
-                                                    text = connectionInfo,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
                                                 CircularProgressIndicator(
                                                     modifier = Modifier.size(16.dp),
                                                     strokeWidth = 2.dp,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
+
                                                 Text(
                                                     text = stringResource(R.string.testing_latency),
                                                     style = MaterialTheme.typography.bodySmall,
@@ -373,19 +381,13 @@ fun HostAddressListCard(
                                             }
                                         }
 
-                                        endpointLatencies[itemKey] != null -> {
+                                        hostLatencies[itemKey] != null -> {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Text(
-                                                    text = connectionInfo,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.alignByBaseline()
-                                                )
                                                 LatencyIndicator(
-                                                    latency = endpointLatencies.getValue(itemKey),
+                                                    latency = hostLatencies.getValue(itemKey),
                                                     modifier = Modifier.alignByBaseline()
                                                 )
                                             }
@@ -396,12 +398,6 @@ fun HostAddressListCard(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Text(
-                                                    text = connectionInfo,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.alignByBaseline()
-                                                )
                                                 Text(
                                                     text = stringResource(R.string.unknown),
                                                     style = MaterialTheme.typography.bodySmall,
@@ -419,11 +415,11 @@ fun HostAddressListCard(
                                 ) {
                                     IconButton(
                                         onClick = {
-                                            if (index in endpoints.indices) {
-                                                val removedEndpoint = endpoints.removeAt(index)
-                                                val removedKey = endpointKey(removedEndpoint)
-                                                endpointLatencies = endpointLatencies - removedKey
-                                                testingKeys = testingKeys - removedKey
+                                            if (index in hosts.indices) {
+                                                val removedHost = hosts.removeAt(index)
+                                                val removedKey = hostKey(removedHost)
+                                                hostLatencies = hostLatencies - removedKey
+                                                testingHosts = testingHosts - removedKey
                                                 listVersion++
                                             }
                                         },
@@ -460,18 +456,6 @@ fun HostAddressListCard(
     }
 }
 
-private fun endpointKey(endpoint: ConnectionEndpoint): String {
-    return endpointKey(endpoint.type, endpoint.host, endpoint.port)
+private fun hostKey(host: String): String {
+    return host.trim().lowercase()
 }
-
-private fun endpointKey(type: ConnectionType, host: String, port: Int): String {
-    return buildString {
-        append(type.name)
-        append(":")
-        append(host.lowercase())
-        append(":")
-        append(port)
-    }
-}
-
-private const val DEFAULT_ADB_PORT = 5555

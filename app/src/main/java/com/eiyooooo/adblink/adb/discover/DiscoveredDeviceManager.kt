@@ -29,13 +29,19 @@ object DiscoveredDeviceManager {
                 devices.reduce { acc, device -> acc.mergeWith(device) }
             }
 
-            val connectionTypeToReplace = if (serviceType == AdbDiscoverServiceType.ADB_TCP) {
-                ConnectionType.TCP
-            } else if (serviceType == AdbDiscoverServiceType.ADB_TLS_CONNECT) {
-                ConnectionType.TLS
-            } else {
-                Timber.w("Unexpected service type for connect devices: $serviceType")
-                return@launch
+            val connectionTypeToReplace = when (serviceType) {
+                AdbDiscoverServiceType.ADB_TCP -> {
+                    ConnectionType.TCP
+                }
+
+                AdbDiscoverServiceType.ADB_TLS_CONNECT -> {
+                    ConnectionType.TLS
+                }
+
+                else -> {
+                    Timber.w("Unexpected service type for connect devices: $serviceType")
+                    return@launch
+                }
             }
 
             _discoveredConnectDevices.update { currentList ->

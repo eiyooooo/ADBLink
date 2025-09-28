@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ConnectionEndpoint(
-    val host: String,
     val port: Int,
     val type: ConnectionType,
     val lastUsedTime: Long = 0L

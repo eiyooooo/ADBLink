@@ -1,8 +1,6 @@
 package com.eiyooooo.adblink.util
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.net.Inet4Address
@@ -75,31 +73,6 @@ fun String.isValidPort(): Boolean {
     return port in 0..65535
 }
 
-fun String.parseHostPort(): Pair<String, Int>? {
-    if (isBlank()) return null
-
-    val host: String
-    val port: String
-
-    if (startsWith("[")) {
-        val closingIndex = indexOf(']')
-        if (closingIndex == -1 || closingIndex + 1 >= length || this[closingIndex + 1] != ':') {
-            return null
-        }
-        host = substring(1, closingIndex).trim()
-        port = substring(closingIndex + 2).trim()
-    } else {
-        val idx = lastIndexOf(':')
-        if (idx == -1) return null
-        host = substring(0, idx).trim()
-        port = substring(idx + 1).trim()
-    }
-
-    if (!host.isValidHostAddress() || !port.isValidPort()) return null
-
-    return host to port.toInt()
-}
-
 suspend fun testLatency(
     ipAddress: String,
     port: Int,
@@ -126,22 +99,6 @@ suspend fun testLatency(
             IpLatency(ipAddress, latency, true)
         } catch (_: Exception) {
             IpLatency(ipAddress, -1, false)
-        }
-    }
-}
-
-suspend fun testMultipleLatencies(
-    ipAddresses: List<String>,
-    port: Int,
-    timeoutMs: Int = 3000,
-    onLatencyResult: (String, IpLatency) -> Unit
-) = coroutineScope {
-    ipAddresses.forEach { ip ->
-        launch(Dispatchers.IO) {
-            val result = testLatency(ip, port, timeoutMs)
-            withContext(Dispatchers.Main) {
-                onLatencyResult(ip, result)
-            }
         }
     }
 }

@@ -136,24 +136,29 @@ private fun DeviceDetailScreenContent(
                 DiscoveredDeviceContent(
                     discoveredDevice = deviceDetailType.discoveredDevice,
                     isAddingDevice = isAddingDevice,
-                    onAddDevice = { discoveredDevice, selectedEndpoints ->
+                    onAddDevice = { discoveredDevice, selectedHosts, selectedEndpoints ->
                         if (!isAddingDevice) {
                             isAddingDevice = true
                             coroutineScope.launch {
                                 try {
-                                    val connectionEndpoints = selectedEndpoints
-                                        .map { endpoint ->
-                                            endpoint.copy(lastUsedTime = 0L)
-                                        }
-                                        .distinctBy { Triple(it.host.lowercase(), it.port, it.type) }
+                                    val hosts = selectedHosts
+                                        .map { it.trim() }
+                                        .filter { it.isNotEmpty() }
+                                        .distinctBy { it.lowercase() }
+
+                                    val connectionEndpoints = selectedEndpoints.map { endpoint ->
+                                        endpoint.copy(lastUsedTime = 0L)
+                                    }.distinctBy { endpoint ->
+                                        endpoint.type to endpoint.port
+                                    }
 
                                     val device = Device.createWithDefaults(
                                         deviceBrand = "",
                                         deviceName = "",
                                         deviceSerial = discoveredDevice.deviceSerial,
                                         usbDevice = null,
+                                        hosts = hosts,
                                         connectionEndpoints = connectionEndpoints,
-                                        lastConnectedEndpoint = connectionEndpoints.firstOrNull(),
                                         tlsName = if (discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_CONNECT)
                                             || discoveredDevice.serviceTypes.contains(AdbDiscoverServiceType.ADB_TLS_PAIRING)
                                         ) discoveredDevice.serviceName else null

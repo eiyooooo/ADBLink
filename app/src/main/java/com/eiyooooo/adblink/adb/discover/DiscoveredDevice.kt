@@ -10,14 +10,28 @@ import timber.log.Timber
 data class DiscoveredDevice(
     val deviceSerial: String,
     val serviceName: String,
+    val hosts: List<String>,
     val connectionEndpoints: List<ConnectionEndpoint>,
     val serviceTypes: Set<AdbDiscoverServiceType>
 ) {
 
     fun mergeWith(other: DiscoveredDevice): DiscoveredDevice {
-        val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints).distinctBy {
-            Triple(it.host, it.port, it.type)
-        }.tlsFirst()
+        val mergedHosts = (hosts + other.hosts)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase() }
+
+        val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints)
+            .groupBy { it.type to it.port }
+            .map { (typePort, endpoints) ->
+                val (type, port) = typePort
+                val lastUsed = endpoints.maxOfOrNull { endpoint -> endpoint.lastUsedTime } ?: 0L
+                ConnectionEndpoint(
+                    port = port,
+                    type = type,
+                    lastUsedTime = lastUsed
+                )
+            }
 
         val preferredServiceName = when {
             other.connectionEndpoints.any { it.type == ConnectionType.TLS } -> other.serviceName
@@ -27,6 +41,7 @@ data class DiscoveredDevice(
 
         return copy(
             serviceName = preferredServiceName,
+            hosts = mergedHosts,
             connectionEndpoints = mergedEndpoints,
             serviceTypes = serviceTypes + other.serviceTypes
         )
@@ -73,39 +88,23 @@ data class DiscoveredDevice(
                 AdbDiscoverServiceType.ADB_TLS_PAIRING -> ConnectionType.TLS
             }
 
-            val endpoints = hostAddresses.map { host ->
+            val endpoints = listOf(
                 ConnectionEndpoint(
-                    host = host,
                     port = serviceInfo.port,
                     type = connectionType
                 )
-            }.distinctBy {
-                Triple(it.host, it.port, it.type)
-            }.tlsFirst()
-
-            if (endpoints.isEmpty()) {
-                Timber.w("No valid connection endpoints found for device: $deviceSerial")
-                return null
-            }
+            )
 
             return DiscoveredDevice(
                 deviceSerial = deviceSerial,
                 serviceName = serviceInfo.serviceName,
+                hosts = hostAddresses
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinctBy { it.lowercase() },
                 connectionEndpoints = endpoints,
                 serviceTypes = setOf(serviceType)
             )
         }
     }
-}
-
-private fun List<ConnectionEndpoint>.tlsFirst(): List<ConnectionEndpoint> {
-    if (isEmpty()) {
-        return this
-    }
-    val containsTls = any { it.type == ConnectionType.TLS }
-    val containsNonTls = any { it.type != ConnectionType.TLS }
-    if (!containsTls || !containsNonTls) {
-        return this
-    }
-    return sortedWith(compareBy { it.type != ConnectionType.TLS })
 }

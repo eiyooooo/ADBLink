@@ -123,20 +123,19 @@ fun AdbTcpDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
                                 message = context.getString(R.string.invalid_host_or_port)
                                 return@ConnectTab
                             }
-                            val tcpEndpoint = ConnectionEndpoint(host, port.toInt(), ConnectionType.TCP)
+                            val tcpEndpoint = ConnectionEndpoint(port = port.toInt(), type = ConnectionType.TCP)
                             scope.launch {
                                 val existingDevice = DeviceRepository.devices.first().find {
-                                    it.connectionEndpoints.any { endpoint ->
-                                        endpoint.type == ConnectionType.TCP
-                                                && endpoint.host == tcpEndpoint.host
-                                                && endpoint.port == tcpEndpoint.port
-                                    }
+                                    it.hosts.any { existingHost -> existingHost.equals(host, ignoreCase = true) } &&
+                                            it.connectionEndpoints.any { endpoint ->
+                                                endpoint.type == ConnectionType.TCP && endpoint.port == tcpEndpoint.port
+                                            }
                                 }
                                 if (existingDevice == null) {
                                     val device = Device.createWithDefaults(
                                         deviceName = host,
+                                        hosts = listOf(host),
                                         connectionEndpoints = listOf(tcpEndpoint),
-                                        lastConnectedEndpoint = tcpEndpoint
                                     )
                                     DeviceRepository.addDevice(device)
                                     Timber.d("Added device to repository via AdbTcpDialog: $host:$port")
