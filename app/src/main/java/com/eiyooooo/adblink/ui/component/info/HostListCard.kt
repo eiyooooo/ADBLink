@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableColumn
 
 @Composable
-fun HostAddressListCard(
+fun HostListCard(
     hosts: SnapshotStateList<String>,
     endpoints: List<ConnectionEndpoint>,
     showAddButton: Boolean,
