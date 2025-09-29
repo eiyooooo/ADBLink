@@ -58,6 +58,13 @@
     <string name="move_down">向下移动</string>
     <string name="add_host_address">添加主机地址</string>
     <string name="remove_host_address">移除主机地址</string>
+    <string name="connection_ports_title">连接端口</string>
+    <string name="connection_ports_empty_hint">暂无端口，点击添加。</string>
+    <string name="add_connection_port">添加端口</string>
+    <string name="remove_connection_port">移除端口</string>
+    <string name="manual_added">手动添加</string>
+    <string name="connection_port_input_label">端口号（1–65535）</string>
+    <string name="connection_port_invalid_error">请输入 1 到 65535 之间的有效端口。</string>
     <string name="reorder_handle">拖动排序</string>
     <string name="view_details">查看详情</string>
     <string name="device_details">设备详情</string>

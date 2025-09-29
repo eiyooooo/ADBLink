@@ -58,6 +58,13 @@
     <string name="move_down">Move down</string>
     <string name="add_host_address">Add Host address</string>
     <string name="remove_host_address">Remove Host address</string>
+    <string name="connection_ports_title">Connection Ports</string>
+    <string name="connection_ports_empty_hint">No ports available. Add one to get started.</string>
+    <string name="add_connection_port">Add Port</string>
+    <string name="remove_connection_port">Remove Port</string>
+    <string name="manual_added">Manually added</string>
+    <string name="connection_port_input_label">Port (1–65535)</string>
+    <string name="connection_port_invalid_error">Enter a valid port between 1 and 65535.</string>
     <string name="reorder_handle">Drag to reorder</string>
     <string name="view_details">View details</string>
     <string name="device_details">Device Details</string>

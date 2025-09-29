@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
 data class ConnectionEndpoint(
     val port: Int,
     val type: ConnectionType,
-    val lastUsedTime: Long = 0L
+    val lastUsedTime: Long = 0L,
+    val manuallyAdded: Boolean = false
 ) {
 
     fun withUpdatedTime(time: Long = System.currentTimeMillis()): ConnectionEndpoint {

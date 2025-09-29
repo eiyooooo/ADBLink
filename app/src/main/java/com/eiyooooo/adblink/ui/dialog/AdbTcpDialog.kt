@@ -123,7 +123,7 @@ fun AdbTcpDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
                                 message = context.getString(R.string.invalid_host_or_port)
                                 return@ConnectTab
                             }
-                            val tcpEndpoint = ConnectionEndpoint(port = port.toInt(), type = ConnectionType.TCP)
+                            val tcpEndpoint = ConnectionEndpoint(port = port.toInt(), type = ConnectionType.TCP, manuallyAdded = true)
                             scope.launch {
                                 val existingDevice = DeviceRepository.devices.first().find {
                                     it.hosts.any { existingHost -> existingHost.equals(host, ignoreCase = true) } &&
