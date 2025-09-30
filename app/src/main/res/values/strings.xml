@@ -70,6 +70,9 @@
     <string name="device_details">Device Details</string>
     <string name="device_serial_label">Serial Number</string>
     <string name="device_port_label">Port</string>
+    <string name="device_brand_label">Brand</string>
+    <string name="device_model_label">Model</string>
+    <string name="device_tls_name_label">TLS Name</string>
     <string name="service_name_label">Service Name</string>
     <string name="testing_latency">Testing…</string>
     <string name="add_device_to_list">Add to Device List</string>

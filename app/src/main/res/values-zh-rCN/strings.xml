@@ -70,6 +70,9 @@
     <string name="device_details">设备详情</string>
     <string name="device_serial_label">序列号</string>
     <string name="device_port_label">端口</string>
+    <string name="device_brand_label">品牌</string>
+    <string name="device_model_label">型号</string>
+    <string name="device_tls_name_label">TLS 名称</string>
     <string name="service_name_label">服务名称</string>
     <string name="testing_latency">延迟测试中…</string>
     <string name="add_device_to_list">添加到设备列表</string>
