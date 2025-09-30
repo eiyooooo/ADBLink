@@ -73,6 +73,51 @@ fun String.isValidPort(): Boolean {
     return port in 0..65535
 }
 
+fun selectPreferredHost(hosts: List<String>): String? {
+    val sanitizedHosts = hosts.mapNotNull { host ->
+        val trimmed = host.trim()
+        trimmed.takeIf { it.isNotEmpty() }
+    }
+
+    if (sanitizedHosts.isEmpty()) return null
+
+    return sanitizedHosts.firstOrNull { it.isPrivateIpv4Address() }
+        ?: sanitizedHosts.firstOrNull { it.isIpv4Address() }
+        ?: sanitizedHosts.firstOrNull()
+}
+
+private fun String.isPrivateIpv4Address(): Boolean {
+    val octets = parseIpv4Octets() ?: return false
+
+    return when (octets[0]) {
+        10 -> true
+        172 -> octets[1] in 16..31
+        192 -> octets[1] == 168
+        169 -> octets[1] == 254
+        100 -> octets[1] in 64..127
+        else -> false
+    }
+}
+
+private fun String.isIpv4Address(): Boolean = parseIpv4Octets() != null
+
+private fun String.parseIpv4Octets(): IntArray? {
+    if (isEmpty()) return null
+
+    val parts = split('.')
+    if (parts.size != 4) return null
+
+    val octets = IntArray(4)
+    for ((index, part) in parts.withIndex()) {
+        if (part.isEmpty() || part.length > 3) return null
+        val value = part.toIntOrNull() ?: return null
+        if (value !in 0..255) return null
+        octets[index] = value
+    }
+
+    return octets
+}
+
 suspend fun testLatency(
     ipAddress: String,
     port: Int,

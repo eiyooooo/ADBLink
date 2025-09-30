@@ -38,11 +38,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.ui.component.DeviceCard
 import com.eiyooooo.adblink.ui.component.DiscoveredDevicesBannerCard
+import com.eiyooooo.adblink.ui.dialog.AdbTlsDialog
 import com.eiyooooo.adblink.ui.dialog.DeleteDeviceDialog
 import com.eiyooooo.adblink.ui.navigation.NavRoutes
 import kotlinx.coroutines.delay
@@ -60,6 +62,7 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostContr
     val discoveredPairingDevices by DiscoveredDeviceManager.discoveredPairingDevices.collectAsState()
 
     var deviceToDelete by remember { mutableStateOf<Device?>(null) }
+    var pairingDeviceDialog by remember { mutableStateOf<DiscoveredDevice?>(null) }
 
     LaunchedEffect(Unit) {
         DeviceRepository.connectAllDevicesOnColdStart()
@@ -90,7 +93,7 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostContr
                     discoveredPairingDevices.size
                 ),
                 devices = discoveredPairingDevices,
-                onDeviceClick = { NavRoutes.navigateToDiscoveredDevice(navController, it) },
+                onDeviceClick = { pairingDeviceDialog = it },
                 widthSizeClass = widthSizeClass
             )
         }
@@ -208,6 +211,13 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostContr
                 }
                 deviceToDelete = null
             }
+        )
+    }
+
+    pairingDeviceDialog?.let { device ->
+        AdbTlsDialog(
+            onDismissRequest = { pairingDeviceDialog = null },
+            discoveredDevice = device
         )
     }
 }

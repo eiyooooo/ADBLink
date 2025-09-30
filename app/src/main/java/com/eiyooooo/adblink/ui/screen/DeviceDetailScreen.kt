@@ -80,7 +80,6 @@ fun DeviceDetailScreen(
 ) {
     val devices by DeviceRepository.devices.collectAsState(initial = emptyList())
     val discoveredConnectDevices by DiscoveredDeviceManager.discoveredConnectDevices.collectAsState()
-    val discoveredPairingDevices by DiscoveredDeviceManager.discoveredPairingDevices.collectAsState()
 
     var deviceDetailType by remember { mutableStateOf<DeviceDetailType?>(null) }
 
@@ -90,7 +89,7 @@ fun DeviceDetailScreen(
         }
     }
 
-    LaunchedEffect(deviceType, deviceIdentifier, devices, discoveredConnectDevices, discoveredPairingDevices) {
+    LaunchedEffect(deviceType, deviceIdentifier, devices, discoveredConnectDevices) {
         Timber.d("DeviceDetailScreen - type: $deviceType, identifier: $deviceIdentifier")
         Timber.d("Available devices: ${devices.map { "${it.name}(${it.uuid})" }}")
 
@@ -105,8 +104,7 @@ fun DeviceDetailScreen(
 
             NavRoutes.DEVICE_DETAIL_TYPE_DISCOVERED -> {
                 val decodedSerial = URLDecoder.decode(deviceIdentifier, StandardCharsets.UTF_8.toString())
-                val discoveredDevice = (discoveredConnectDevices + discoveredPairingDevices)
-                    .find { it.deviceSerial == decodedSerial }
+                val discoveredDevice = discoveredConnectDevices.find { it.deviceSerial == decodedSerial }
                 Timber.d("Looking for discovered device with serial: $decodedSerial, found: ${discoveredDevice != null}")
                 discoveredDevice?.let {
                     DeviceDetailType.Discovered(it)

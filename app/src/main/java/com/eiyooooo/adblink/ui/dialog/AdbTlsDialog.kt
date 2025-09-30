@@ -44,10 +44,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.ui.component.BubbleMessage
 import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.isValidHostAddress
 import com.eiyooooo.adblink.util.isValidPort
+import com.eiyooooo.adblink.util.selectPreferredHost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -55,7 +57,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @Composable
-fun AdbTlsDialog(onDismissRequest: () -> Unit, initialHostPort: String = "") {
+fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevice? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -63,7 +65,7 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, initialHostPort: String = "") {
 
     var message by remember { mutableStateOf("") }
 
-    var selectedTabIndex by remember { mutableIntStateOf(if (initialHostPort.isNotEmpty()) 2 else 0) }
+    var selectedTabIndex by remember { mutableIntStateOf(if (discoveredDevice != null) 2 else 0) }
     val tabs = listOf(
         stringResource(R.string.guide),
         stringResource(R.string.qr_code),
@@ -74,9 +76,22 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, initialHostPort: String = "") {
     var isGeneratingQr by remember { mutableStateOf(false) }
     var qrGenerationFailed by remember { mutableStateOf(false) }
 
-    var pairingHostPort by remember { mutableStateOf(initialHostPort) }
-    var pairingCode by remember { mutableStateOf("") }
-    var isPairing by remember { mutableStateOf(false) }
+    val suggestedHostPort = remember(discoveredDevice) {
+        discoveredDevice?.let { device ->
+            val host = selectPreferredHost(device.hosts)
+            val port = device.connectionEndpoints.firstOrNull()?.port
+
+            if (host != null && port != null) {
+                "$host:$port"
+            } else {
+                ""
+            }
+        } ?: ""
+    }
+
+    var pairingHostPort by remember(discoveredDevice) { mutableStateOf(suggestedHostPort) }
+    var pairingCode by remember(discoveredDevice) { mutableStateOf("") }
+    var isPairing by remember(discoveredDevice) { mutableStateOf(false) }
 
     val qrPairingSuccess by AdbManager.qrPairingSuccess.collectAsState()
 
@@ -170,10 +185,15 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, initialHostPort: String = "") {
                         onCodeChange = { pairingCode = it.filter { char -> char.isDigit() } },
                         onPairClick = {
                             val parts = pairingHostPort.trim().split(":")
+                            if (parts.size != 2) {
+                                message = context.getString(R.string.invalid_host_port_code)
+                                return@CodePairContent
+                            }
+
                             val host = parts[0]
                             val port = parts[1]
 
-                            if (parts.size != 2 || !host.isValidHostAddress() || !port.isValidPort() || pairingCode.isBlank()) {
+                            if (!host.isValidHostAddress() || !port.isValidPort() || pairingCode.isBlank()) {
                                 message = context.getString(R.string.invalid_host_port_code)
                                 return@CodePairContent
                             }
