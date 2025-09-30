@@ -27,6 +27,7 @@ import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +46,7 @@ import com.eiyooooo.adblink.ui.dialog.AdbTcpDialog
 import com.eiyooooo.adblink.ui.dialog.AdbTlsDialog
 import com.eiyooooo.adblink.ui.dialog.AdbUsbDialog
 import com.eiyooooo.adblink.ui.dialog.InitFailedDialog
-import kotlinx.coroutines.launch
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,11 +67,9 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val showSnackbar: (String) -> Unit = { message ->
-        coroutineScope.launch {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(message)
-        }
+    DisposableEffect(snackbarHostState, coroutineScope) {
+        val unregister = SnackbarManager.register(snackbarHostState, coroutineScope)
+        onDispose { unregister() }
     }
 
     if (!AdbManager.initialized) {
@@ -83,14 +82,12 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
 
     if (showAdbTcpDeviceDialog) {
         AdbTcpDialog(
-            showSnackbar = showSnackbar,
             onDismissRequest = { showAdbTcpDeviceDialog = false }
         )
     }
 
     if (showAdbTlsDeviceDialog) {
         AdbTlsDialog(
-            showSnackbar = showSnackbar,
             onDismissRequest = { showAdbTlsDeviceDialog = false }
         )
     }
@@ -185,7 +182,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
                 },
                 snackbarHost = { SnackbarHost(snackbarHostState) }
             ) { innerPadding ->
-                AppNavHost(navController, widthSizeClass, innerPadding, showSnackbar)
+                AppNavHost(navController, widthSizeClass, innerPadding)
             }
         }
 
@@ -285,7 +282,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { innerPadding ->
-                    AppNavHost(navController, widthSizeClass, innerPadding, showSnackbar)
+                    AppNavHost(navController, widthSizeClass, innerPadding)
                 }
             }
         }

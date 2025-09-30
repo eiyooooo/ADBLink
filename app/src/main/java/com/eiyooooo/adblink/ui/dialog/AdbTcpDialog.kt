@@ -39,6 +39,7 @@ import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.ui.component.BubbleMessage
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.isValidHostAddress
 import com.eiyooooo.adblink.util.isValidPort
 import kotlinx.coroutines.delay
@@ -47,7 +48,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @Composable
-fun AdbTcpDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
+fun AdbTcpDialog(onDismissRequest: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -139,7 +140,7 @@ fun AdbTcpDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit) {
                                     )
                                     DeviceRepository.addDevice(device)
                                     Timber.d("Added device to repository via AdbTcpDialog: $host:$port")
-                                    showSnackbar(context.getString(R.string.device_added))
+                                    SnackbarManager.show(context.getString(R.string.device_added))
                                     onDismissRequest()
                                 } else {
                                     message = context.getString(R.string.device_already_exists)

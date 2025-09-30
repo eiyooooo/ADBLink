@@ -61,7 +61,8 @@ fun HostListCard(
     hosts: SnapshotStateList<String>,
     endpoints: List<ConnectionEndpoint>,
     showAddButton: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRemoveHost: ((removedHost: String, index: Int, restore: () -> Unit) -> Unit)? = null
 ) {
     var listVersion by remember { mutableIntStateOf(0) }
     var hostLatencies by remember { mutableStateOf<Map<String, IpLatency>>(emptyMap()) }
@@ -416,11 +417,27 @@ fun HostListCard(
                                     IconButton(
                                         onClick = {
                                             if (index in hosts.indices) {
-                                                val removedHost = hosts.removeAt(index)
+                                                val removalIndex = index
+                                                val removedHost = hosts.removeAt(removalIndex)
                                                 val removedKey = hostKey(removedHost)
                                                 hostLatencies = hostLatencies - removedKey
                                                 testingHosts = testingHosts - removedKey
                                                 listVersion++
+
+                                                onRemoveHost?.let { callback ->
+                                                    var restoreHandled = false
+                                                    val restoreAction: () -> Unit = action@{
+                                                        if (restoreHandled) return@action
+                                                        restoreHandled = true
+                                                        val insertIndex = removalIndex.coerceIn(0, hosts.size)
+                                                        hosts.add(insertIndex, removedHost)
+                                                        val newKey = hostKey(removedHost)
+                                                        hostLatencies = hostLatencies - newKey
+                                                        testingHosts = testingHosts + newKey
+                                                        listVersion++
+                                                    }
+                                                    callback(removedHost, removalIndex, restoreAction)
+                                                }
                                             }
                                         },
                                         colors = IconButtonDefaults.iconButtonColors(

@@ -29,8 +29,7 @@ import com.eiyooooo.adblink.ui.screen.SettingsScreen
 fun AppNavHost(
     navController: NavHostController,
     widthSizeClass: WindowWidthSizeClass,
-    innerPadding: PaddingValues,
-    showSnackbar: (String) -> Unit = {}
+    innerPadding: PaddingValues
 ) {
     Surface(
         modifier = Modifier
@@ -51,7 +50,7 @@ fun AppNavHost(
                 ManageScreen(widthSizeClass)
             }
             composable(route = NavRoutes.SETTINGS) {
-                SettingsScreen(widthSizeClass, navController, showSnackbar)
+                SettingsScreen(widthSizeClass, navController)
             }
             composable(route = NavRoutes.SETTINGS_CAST) {
                 CastSettingsScreen()
@@ -63,10 +62,10 @@ fun AppNavHost(
                 OtherSettingsScreen(navController)
             }
             composable(route = NavRoutes.SETTINGS_OTHER_LOG) {
-                LogScreen(showSnackbar)
+                LogScreen()
             }
             composable(route = NavRoutes.SETTINGS_OTHER_IP) {
-                IpScreen(showSnackbar)
+                IpScreen()
             }
             composable(route = NavRoutes.SETTINGS_ABOUT) {
                 AboutScreen()
@@ -77,8 +76,7 @@ fun AppNavHost(
                 DeviceDetailScreen(
                     deviceType = type,
                     deviceIdentifier = identifier,
-                    navController = navController,
-                    showSnackbar = showSnackbar
+                    navController = navController
                 )
             }
         }

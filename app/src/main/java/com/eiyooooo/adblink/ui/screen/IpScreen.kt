@@ -25,10 +25,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.entity.SystemServices
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.getIp
 
 @Composable
-fun IpContent(showSnackbar: (String) -> Unit) {
+fun IpContent() {
     val context = LocalContext.current
 
     val ipv4List = remember { mutableStateListOf<String>() }
@@ -44,7 +45,7 @@ fun IpContent(showSnackbar: (String) -> Unit) {
 
     fun copyIpToClipboard(ip: String) {
         SystemServices.clipboardManager.setPrimaryClip(ClipData.newPlainText(ClipDescription.MIMETYPE_TEXT_PLAIN, ip))
-        showSnackbar(context.getString(R.string.copied))
+        SnackbarManager.show(context.getString(R.string.copied))
     }
 
     @Composable
@@ -117,7 +118,7 @@ fun IpContent(showSnackbar: (String) -> Unit) {
 }
 
 @Composable
-fun IpScreen(showSnackbar: (String) -> Unit) {
+fun IpScreen() {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -128,7 +129,7 @@ fun IpScreen(showSnackbar: (String) -> Unit) {
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            IpContent(showSnackbar)
+            IpContent()
         }
     }
 }

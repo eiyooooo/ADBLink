@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -60,6 +61,7 @@ import com.eiyooooo.adblink.ui.component.info.DetailInfoRow
 import com.eiyooooo.adblink.ui.component.info.HostListCard
 import com.eiyooooo.adblink.ui.component.info.PortListCard
 import com.eiyooooo.adblink.ui.navigation.NavRoutes
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.net.URLDecoder
@@ -74,14 +76,19 @@ private sealed class DeviceDetailType {
 fun DeviceDetailScreen(
     deviceType: String,
     deviceIdentifier: String,
-    navController: NavHostController,
-    showSnackbar: (String) -> Unit = {}
+    navController: NavHostController
 ) {
     val devices by DeviceRepository.devices.collectAsState(initial = emptyList())
     val discoveredConnectDevices by DiscoveredDeviceManager.discoveredConnectDevices.collectAsState()
     val discoveredPairingDevices by DiscoveredDeviceManager.discoveredPairingDevices.collectAsState()
 
     var deviceDetailType by remember { mutableStateOf<DeviceDetailType?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            SnackbarManager.dismissAll()
+        }
+    }
 
     LaunchedEffect(deviceType, deviceIdentifier, devices, discoveredConnectDevices, discoveredPairingDevices) {
         Timber.d("DeviceDetailScreen - type: $deviceType, identifier: $deviceIdentifier")
@@ -117,16 +124,14 @@ fun DeviceDetailScreen(
 
     DeviceDetailScreenContent(
         deviceDetailType = deviceDetailType,
-        navController = navController,
-        showSnackbar = showSnackbar
+        navController = navController
     )
 }
 
 @Composable
 private fun DeviceDetailScreenContent(
     deviceDetailType: DeviceDetailType?,
-    navController: NavHostController,
-    showSnackbar: (String) -> Unit = {}
+    navController: NavHostController
 ) {
     val context = LocalContext.current
 
@@ -153,11 +158,11 @@ private fun DeviceDetailScreenContent(
                                     DeviceRepository.updateDevice(deviceDetailType.device) {
                                         updatedDevice
                                     }
-                                    showSnackbar(context.getString(R.string.device_info_updated))
+                                    SnackbarManager.show(context.getString(R.string.device_info_updated))
                                     navController.popBackStack()
                                 } catch (e: Exception) {
                                     Timber.e(e, "Failed to update device")
-                                    showSnackbar("Failed to save device: ${e.message}")
+                                    SnackbarManager.show(context.getString(R.string.save_failed))
                                 } finally {
                                     isSaving = false
                                 }
@@ -190,11 +195,11 @@ private fun DeviceDetailScreenContent(
                                         }
                                     )
                                     DeviceRepository.addDevice(device)
-                                    showSnackbar(context.getString(R.string.device_info_updated))
+                                    SnackbarManager.show(context.getString(R.string.device_info_updated))
                                     navController.popBackStack()
                                 } catch (e: Exception) {
                                     Timber.e(e, "Failed to add device")
-                                    showSnackbar("Failed to add device: ${e.message}")
+                                    SnackbarManager.show(context.getString(R.string.save_failed))
                                 } finally {
                                     isAddingDevice = false
                                 }
@@ -249,6 +254,8 @@ private fun DeviceDetailContent(
     onAddDevice: (DiscoveredDevice, String, List<String>, List<ConnectionEndpoint>) -> Unit = { _, _, _, _ -> },
     onSaveDevice: (Device) -> Unit = {}
 ) {
+    val context = LocalContext.current
+
     val hostList = remember(detailType) { mutableStateListOf<String>() }
     val connectionEndpointList = remember(detailType) { mutableStateListOf<ConnectionEndpoint>() }
     val endpointSnapshot by remember { derivedStateOf { connectionEndpointList.toList() } }
@@ -462,7 +469,13 @@ private fun DeviceDetailContent(
             HostListCard(
                 hosts = hostList,
                 endpoints = endpointSnapshot,
-                showAddButton = true
+                showAddButton = true,
+                onRemoveHost = { removedHost, _, restore ->
+                    val message = context.getString(R.string.device_host_removed_message, removedHost.trim())
+                    SnackbarManager.show(message, context.getString(R.string.undo), dismissCurrent = false) {
+                        restore()
+                    }
+                }
             )
         }
 
@@ -480,8 +493,16 @@ private fun DeviceDetailContent(
                 }
             },
             onRemoveEndpoint = { endpointToRemove ->
-                connectionEndpointList.removeAll { endpoint ->
+                val removalIndex = connectionEndpointList.indexOfFirst { endpoint ->
                     endpointKey(endpoint) == endpointKey(endpointToRemove)
+                }
+                if (removalIndex >= 0) {
+                    val removedEndpoint = connectionEndpointList.removeAt(removalIndex)
+                    val message = context.getString(R.string.device_port_removed_message, removedEndpoint.port)
+                    SnackbarManager.show(message, context.getString(R.string.undo), dismissCurrent = false) {
+                        val insertIndex = removalIndex.coerceIn(0, connectionEndpointList.size)
+                        connectionEndpointList.add(insertIndex, removedEndpoint)
+                    }
                 }
             }
         )

@@ -32,8 +32,7 @@ import com.eiyooooo.adblink.ui.navigation.NavRoutes
 @Composable
 fun SettingsScreen(
     widthSizeClass: WindowWidthSizeClass,
-    navController: NavHostController,
-    showSnackbar: (String) -> Unit
+    navController: NavHostController
 ) {
     val compactScrollState = rememberScrollState()
     val isCompactScreen = widthSizeClass == WindowWidthSizeClass.Compact
@@ -172,8 +171,8 @@ fun SettingsScreen(
                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> DefaultCastParametersSettingsContent()
                         NavRoutes.SETTINGS_CAST -> CastSettingsContent()
                         NavRoutes.SETTINGS_OTHER -> OtherSettingsContent { selectedContent = it }
-                        NavRoutes.SETTINGS_OTHER_IP -> IpContent(showSnackbar)
-                        NavRoutes.SETTINGS_OTHER_LOG -> LogContent(showSnackbar)
+                        NavRoutes.SETTINGS_OTHER_IP -> IpContent()
+                        NavRoutes.SETTINGS_OTHER_LOG -> LogContent()
                         NavRoutes.SETTINGS_ABOUT -> AboutContent()
                     }
                 }

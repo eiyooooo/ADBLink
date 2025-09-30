@@ -45,6 +45,7 @@ import androidx.core.net.toUri
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.ui.component.BubbleMessage
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.isValidHostAddress
 import com.eiyooooo.adblink.util.isValidPort
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @Composable
-fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit, initialHostPort: String = "") {
+fun AdbTlsDialog(onDismissRequest: () -> Unit, initialHostPort: String = "") {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -82,7 +83,7 @@ fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit, i
     LaunchedEffect(qrPairingSuccess) {
         if (qrPairingSuccess) {
             AdbManager.resetQrPairingSuccess()
-            showSnackbar(context.getString(R.string.pairing_success))
+            SnackbarManager.show(context.getString(R.string.pairing_success))
             onDismissRequest()
         }
     }
@@ -182,7 +183,7 @@ fun AdbTlsDialog(showSnackbar: (String) -> Unit, onDismissRequest: () -> Unit, i
                                 val pairResult = AdbManager.pair(host, port.toInt(), pairingCode)
                                 isPairing = false
                                 if (pairResult) {
-                                    showSnackbar(context.getString(R.string.pairing_success))
+                                    SnackbarManager.show(context.getString(R.string.pairing_success))
                                     onDismissRequest()
                                 } else {
                                     message = context.getString(R.string.pairing_failed)

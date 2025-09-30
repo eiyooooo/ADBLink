@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.eiyooooo.adblink.BuildConfig
 import com.eiyooooo.adblink.MyApplication.Companion.appStartTime
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -238,13 +239,17 @@ object FLog {
         }
     }
 
-    fun export(context: Context, showSnackbar: (String) -> Unit) {
+    fun export(context: Context, showMessage: ((String) -> Unit)? = null) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 if (context is Activity) {
                     ActivityCompat.requestPermissions(context, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0)
                 }
-                showSnackbar(context.getString(R.string.storage_permission_required))
+                if (showMessage != null) {
+                    showMessage(context.getString(R.string.storage_permission_required))
+                } else {
+                    SnackbarManager.show(context.getString(R.string.storage_permission_required))
+                }
                 return
             }
         }
@@ -270,7 +275,7 @@ object FLog {
                                 }
                             }
                         }
-                        showSnackbar(context.getString(R.string.log_export_success))
+                        SnackbarManager.show(context.getString(R.string.log_export_success))
                     }
                 } else {
                     val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -282,11 +287,11 @@ object FLog {
                     synchronized(logFileLock) {
                         sourceFile.copyTo(destinationFile, overwrite = true)
                     }
-                    showSnackbar(context.getString(R.string.log_export_success))
+                    SnackbarManager.show(context.getString(R.string.log_export_success))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error occurred while exporting logs")
-                showSnackbar(context.getString(R.string.log_export_failed, e.message))
+                SnackbarManager.show(context.getString(R.string.log_export_failed, e.message))
             }
         }
     }

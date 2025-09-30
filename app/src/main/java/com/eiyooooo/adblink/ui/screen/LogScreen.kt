@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.DLog
 import com.eiyooooo.adblink.util.FLog
 import kotlinx.coroutines.launch
@@ -60,7 +61,7 @@ enum class DialogType {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LogContent(showSnackbar: (String) -> Unit) {
+fun LogContent() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -116,7 +117,7 @@ fun LogContent(showSnackbar: (String) -> Unit) {
                 DLog.getLogs(currentUuid!!)
             }
             splitLogIntoPages(fullLogText)
-            showSnackbar(context.getString(R.string.log_refresh_success))
+            SnackbarManager.show(context.getString(R.string.log_refresh_success))
         }
     }
 
@@ -126,25 +127,25 @@ fun LogContent(showSnackbar: (String) -> Unit) {
                 if (FLog.clear()) {
                     fullLogText = ""
                     splitLogIntoPages(fullLogText)
-                    showSnackbar(context.getString(R.string.log_clear_success))
+                    SnackbarManager.show(context.getString(R.string.log_clear_success))
                 } else {
-                    showSnackbar(context.getString(R.string.log_clear_failed))
+                    SnackbarManager.show(context.getString(R.string.log_clear_failed))
                 }
             } else {
                 DLog.clearLogs(currentUuid)
                 fullLogText = ""
                 splitLogIntoPages(fullLogText)
-                showSnackbar(context.getString(R.string.log_clear_success))
+                SnackbarManager.show(context.getString(R.string.log_clear_success))
             }
         }
     }
 
     fun exportLog() {
         if (currentUuid == null) {
-            FLog.export(context, showSnackbar)
+            FLog.export(context)
         } else {
             coroutineScope.launch {
-                DLog.export(context, currentUuid!!, showSnackbar)
+                DLog.export(context, currentUuid!!)
             }
         }
     }
@@ -395,7 +396,7 @@ fun LogContent(showSnackbar: (String) -> Unit) {
 }
 
 @Composable
-fun LogScreen(showSnackbar: (String) -> Unit) {
+fun LogScreen() {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -405,7 +406,7 @@ fun LogScreen(showSnackbar: (String) -> Unit) {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            LogContent(showSnackbar)
+            LogContent()
         }
     }
 }

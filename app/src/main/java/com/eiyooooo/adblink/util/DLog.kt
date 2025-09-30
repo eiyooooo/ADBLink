@@ -13,6 +13,7 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -77,13 +78,13 @@ object DLog {
         return logs.keys.toList()
     }
 
-    suspend fun export(context: Context, id: String, showSnackbar: (String) -> Unit) {
+    suspend fun export(context: Context, id: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 if (context is Activity) {
                     ActivityCompat.requestPermissions(context, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0)
                 }
-                showSnackbar(context.getString(R.string.storage_permission_required))
+                SnackbarManager.show(context.getString(R.string.storage_permission_required))
                 return
             }
         }
@@ -92,7 +93,7 @@ object DLog {
             try {
                 val logContent = getLogs(id)
                 if (logContent == "no log found") {
-                    showSnackbar(context.getString(R.string.log_export_failed, "无日志可导出"))
+                    SnackbarManager.show(context.getString(R.string.log_export_failed, "无日志可导出"))
                     return@withContext
                 }
 
@@ -110,7 +111,7 @@ object DLog {
                         context.contentResolver.openOutputStream(outputUri)?.use { outputStream ->
                             outputStream.write(logContent.toByteArray())
                         }
-                        showSnackbar(context.getString(R.string.log_export_success))
+                        SnackbarManager.show(context.getString(R.string.log_export_success))
                     }
                 } else {
                     val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -122,11 +123,11 @@ object DLog {
                     FileOutputStream(destinationFile).use { outputStream ->
                         outputStream.write(logContent.toByteArray())
                     }
-                    showSnackbar(context.getString(R.string.log_export_success))
+                    SnackbarManager.show(context.getString(R.string.log_export_success))
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error occurred while exporting device logs")
-                showSnackbar(context.getString(R.string.log_export_failed, e.message))
+                SnackbarManager.show(context.getString(R.string.log_export_failed, e.message))
             }
         }
     }
