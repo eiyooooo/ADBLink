@@ -82,7 +82,7 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevic
             val port = device.connectionEndpoints.firstOrNull()?.port
 
             if (host != null && port != null) {
-                "$host:$port"
+                "${host.host}:$port"
             } else {
                 ""
             }

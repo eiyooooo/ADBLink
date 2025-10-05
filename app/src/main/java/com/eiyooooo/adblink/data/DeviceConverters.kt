@@ -11,6 +11,20 @@ class DeviceConverters {
     }
 
     @TypeConverter
+    fun fromConnectionHostList(hosts: List<ConnectionHost>?): String? {
+        return hosts?.let { json.encodeToString(it) }
+    }
+
+    @TypeConverter
+    fun toConnectionHostList(hostsString: String?): List<ConnectionHost>? {
+        return try {
+            hostsString?.let { json.decodeFromString(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    @TypeConverter
     fun fromConnectionEndpointList(endpoints: List<ConnectionEndpoint>?): String? {
         return endpoints?.let { json.encodeToString(it) }
     }
@@ -19,20 +33,6 @@ class DeviceConverters {
     fun toConnectionEndpointList(endpointsString: String?): List<ConnectionEndpoint>? {
         return try {
             endpointsString?.let { json.decodeFromString(it) }
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    @TypeConverter
-    fun fromHostList(hosts: List<String>?): String? {
-        return hosts?.let { json.encodeToString(it) }
-    }
-
-    @TypeConverter
-    fun toHostList(hostsString: String?): List<String>? {
-        return try {
-            hostsString?.let { json.decodeFromString(it) }
         } catch (_: Exception) {
             null
         }

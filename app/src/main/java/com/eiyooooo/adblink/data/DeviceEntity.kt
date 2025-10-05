@@ -13,7 +13,7 @@ data class DeviceEntity(
     val deviceName: String,
     val deviceSerial: String,
     val name: String,
-    val hosts: List<String> = emptyList(),
+    val hosts: List<ConnectionHost>,
     val connectionEndpoints: List<ConnectionEndpoint>,
     val tlsName: String?,
     val maxSize: Int,

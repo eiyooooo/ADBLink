@@ -54,8 +54,10 @@ import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.data.ConnectionEndpoint
+import com.eiyooooo.adblink.data.ConnectionHost
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.data.normalizeHostList
 import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.ui.component.info.DetailInfoRow
 import com.eiyooooo.adblink.ui.component.info.HostListCard
@@ -249,12 +251,12 @@ private fun DeviceDetailScreenContent(
 private fun DeviceDetailContent(
     detailType: DeviceDetailType,
     isProcessing: Boolean,
-    onAddDevice: (DiscoveredDevice, String, List<String>, List<ConnectionEndpoint>) -> Unit = { _, _, _, _ -> },
+    onAddDevice: (DiscoveredDevice, String, List<ConnectionHost>, List<ConnectionEndpoint>) -> Unit = { _, _, _, _ -> },
     onSaveDevice: (Device) -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    val hostList = remember(detailType) { mutableStateListOf<String>() }
+    val hostList = remember(detailType) { mutableStateListOf<ConnectionHost>() }
     val connectionEndpointList = remember(detailType) { mutableStateListOf<ConnectionEndpoint>() }
     val endpointSnapshot by remember { derivedStateOf { connectionEndpointList.toList() } }
     var editedName by remember(detailType) {
@@ -269,7 +271,10 @@ private fun DeviceDetailContent(
     when (detailType) {
         is DeviceDetailType.Discovered -> {
             LaunchedEffect(detailType.discoveredDevice.hosts) {
-                mergeHosts(hostList, detailType.discoveredDevice.hosts)
+                normalizeHostList(hostList, detailType.discoveredDevice.hosts).let {
+                    hostList.clear()
+                    hostList.addAll(it)
+                }
             }
             LaunchedEffect(detailType.discoveredDevice.connectionEndpoints) {
                 mergeEndpoints(connectionEndpointList, detailType.discoveredDevice.connectionEndpoints)
@@ -278,7 +283,8 @@ private fun DeviceDetailContent(
 
         is DeviceDetailType.Edit -> {
             LaunchedEffect(detailType.device.hosts) {
-                replaceHosts(hostList, detailType.device.hosts)
+                hostList.clear()
+                hostList.addAll(normalizeHostList(detailType.device.hosts))
             }
             LaunchedEffect(detailType.device.connectionEndpoints) {
                 replaceEndpoints(connectionEndpointList, detailType.device.connectionEndpoints)
@@ -359,7 +365,7 @@ private fun DeviceDetailContent(
         }
     }
 
-    val normalizedHosts = normalizeHosts(hostList)
+    val normalizedHosts = normalizeHostList(hostList)
     val normalizedEndpoints = normalizeEndpoints(connectionEndpointList)
 
     val actionEnabled = when (detailType) {
@@ -469,7 +475,7 @@ private fun DeviceDetailContent(
                 endpoints = endpointSnapshot,
                 showAddButton = true,
                 onRemoveHost = { removedHost, _, restore ->
-                    val message = context.getString(R.string.device_host_removed_message, removedHost.trim())
+                    val message = context.getString(R.string.device_host_removed_message, removedHost.host.trim())
                     SnackbarManager.show(message, context.getString(R.string.undo), dismissCurrent = false) {
                         restore()
                     }
@@ -512,7 +518,7 @@ private fun DeviceDetailContent(
                         onAddDevice(
                             detailType.discoveredDevice,
                             trimmedName,
-                            normalizeHosts(hostList),
+                            normalizeHostList(hostList),
                             sanitizeEndpointsForSave(connectionEndpointList, resetLastUsed = true)
                         )
                     }
@@ -520,7 +526,7 @@ private fun DeviceDetailContent(
                     is DeviceDetailType.Edit -> {
                         val sanitizedDevice = detailType.device.copy(
                             name = trimmedName,
-                            hosts = normalizeHosts(hostList),
+                            hosts = normalizeHostList(hostList),
                             connectionEndpoints = sanitizeEndpointsForSave(connectionEndpointList, resetLastUsed = false)
                         )
                         onSaveDevice(sanitizedDevice)
@@ -580,34 +586,6 @@ private fun endpointKey(endpoint: ConnectionEndpoint): String {
         append(":")
         append(endpoint.port)
     }
-}
-
-private fun mergeHosts(target: MutableList<String>, newHosts: List<String>) {
-    val normalized = normalizeHosts(newHosts)
-    if (target.isEmpty()) {
-        target.addAll(normalized)
-        return
-    }
-
-    val existingKeys = target.map { it.lowercase() }.toMutableSet()
-    normalized.forEach { host ->
-        val key = host.lowercase()
-        if (existingKeys.add(key)) {
-            target.add(host)
-        }
-    }
-}
-
-private fun replaceHosts(target: MutableList<String>, newHosts: List<String>) {
-    target.clear()
-    target.addAll(normalizeHosts(newHosts))
-}
-
-private fun normalizeHosts(hosts: List<String>): List<String> {
-    return hosts
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .distinctBy { it.lowercase() }
 }
 
 private fun mergeEndpoints(target: MutableList<ConnectionEndpoint>, newEndpoints: List<ConnectionEndpoint>) {

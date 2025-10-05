@@ -15,7 +15,7 @@ data class Device(
     val name: String,
     // connection information
     @Transient val usbDevice: UsbDevice? = null,
-    val hosts: List<String> = emptyList(),
+    val hosts: List<ConnectionHost>,
     val connectionEndpoints: List<ConnectionEndpoint>,
     val tlsName: String?,
     // cast configuration
@@ -35,7 +35,7 @@ data class Device(
             deviceSerial: String = "",
             name: String = "$deviceBrand $deviceName".trim(),
             usbDevice: UsbDevice? = null,
-            hosts: List<String> = emptyList(),
+            hosts: List<ConnectionHost> = emptyList(),
             connectionEndpoints: List<ConnectionEndpoint> = emptyList(),
             tlsName: String? = null
         ): Device {

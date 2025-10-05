@@ -4,22 +4,21 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
 import com.eiyooooo.adblink.data.ConnectionEndpoint
+import com.eiyooooo.adblink.data.ConnectionHost
+import com.eiyooooo.adblink.data.normalizeHostList
 import com.eiyooooo.adblink.entity.ConnectionType
 import timber.log.Timber
 
 data class DiscoveredDevice(
     val deviceSerial: String,
     val serviceName: String,
-    val hosts: List<String>,
+    val hosts: List<ConnectionHost>,
     val connectionEndpoints: List<ConnectionEndpoint>,
     val serviceTypes: Set<AdbDiscoverServiceType>
 ) {
 
     fun mergeWith(other: DiscoveredDevice): DiscoveredDevice {
-        val mergedHosts = (hosts + other.hosts)
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinctBy { it.lowercase() }
+        val mergedHosts = normalizeHostList(hosts, other.hosts)
 
         val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints)
             .groupBy { it.type to it.port }
@@ -88,6 +87,13 @@ data class DiscoveredDevice(
                 AdbDiscoverServiceType.ADB_TLS_PAIRING -> ConnectionType.TLS
             }
 
+            val hosts = hostAddresses.mapNotNull { host ->
+                val trimmed = host.trim()
+                trimmed.takeIf { it.isNotEmpty() }?.let {
+                    ConnectionHost(host = trimmed)
+                }
+            }.distinctBy { it.host.lowercase() }
+
             val endpoints = listOf(
                 ConnectionEndpoint(
                     port = serviceInfo.port,
@@ -98,10 +104,7 @@ data class DiscoveredDevice(
             return DiscoveredDevice(
                 deviceSerial = deviceSerial,
                 serviceName = serviceInfo.serviceName,
-                hosts = hostAddresses
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .distinctBy { it.lowercase() },
+                hosts = hosts,
                 connectionEndpoints = endpoints,
                 serviceTypes = setOf(serviceType)
             )

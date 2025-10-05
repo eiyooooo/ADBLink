@@ -1,5 +1,6 @@
 package com.eiyooooo.adblink.util
 
+import com.eiyooooo.adblink.data.ConnectionHost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -73,16 +74,16 @@ fun String.isValidPort(): Boolean {
     return port in 0..65535
 }
 
-fun selectPreferredHost(hosts: List<String>): String? {
+fun selectPreferredHost(hosts: List<ConnectionHost>): ConnectionHost? {
     val sanitizedHosts = hosts.mapNotNull { host ->
-        val trimmed = host.trim()
-        trimmed.takeIf { it.isNotEmpty() }
-    }
+        val trimmed = host.host.trim()
+        trimmed.takeIf { it.isNotEmpty() }?.let { host.copy(host = it) }
+    }.distinctBy { it.host.lowercase() }
 
     if (sanitizedHosts.isEmpty()) return null
 
-    return sanitizedHosts.firstOrNull { it.isPrivateIpv4Address() }
-        ?: sanitizedHosts.firstOrNull { it.isIpv4Address() }
+    return sanitizedHosts.firstOrNull { it.host.isPrivateIpv4Address() }
+        ?: sanitizedHosts.firstOrNull { it.host.isIpv4Address() }
         ?: sanitizedHosts.firstOrNull()
 }
 

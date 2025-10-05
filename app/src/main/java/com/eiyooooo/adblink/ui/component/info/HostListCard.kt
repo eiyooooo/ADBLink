@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.data.ConnectionEndpoint
+import com.eiyooooo.adblink.data.ConnectionHost
 import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.util.IpLatency
 import com.eiyooooo.adblink.util.isValidHostAddress
@@ -58,11 +59,11 @@ import sh.calvin.reorderable.ReorderableColumn
 
 @Composable
 fun HostListCard(
-    hosts: SnapshotStateList<String>,
+    hosts: SnapshotStateList<ConnectionHost>,
     endpoints: List<ConnectionEndpoint>,
     showAddButton: Boolean,
     modifier: Modifier = Modifier,
-    onRemoveHost: ((removedHost: String, index: Int, restore: () -> Unit) -> Unit)? = null
+    onRemoveHost: ((removedHost: ConnectionHost, index: Int, restore: () -> Unit) -> Unit)? = null
 ) {
     var listVersion by remember { mutableIntStateOf(0) }
     var hostLatencies by remember { mutableStateOf<Map<String, IpLatency>>(emptyMap()) }
@@ -73,11 +74,11 @@ fun HostListCard(
     var addErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val membershipSnapshot by remember {
-        derivedStateOf { hosts.map { hostKey(it) }.toSet() }
+        derivedStateOf { hosts.map { it.key }.toSet() }
     }
 
     LaunchedEffect(Unit) {
-        val deduped = hosts.distinctBy { hostKey(it) }
+        val deduped = hosts.distinctBy { it.key }
         if (deduped.size != hosts.size) {
             hosts.clear()
             hosts.addAll(deduped)
@@ -92,9 +93,10 @@ fun HostListCard(
     }
 
     LaunchedEffect(membershipSnapshot, endpoints) {
-        val snapshotHosts = hosts
-            .mapNotNull { host -> host.takeIf { it.isNotBlank() } }
-            .distinctBy { hostKey(it) }
+        val snapshotHosts = hosts.mapNotNull { host ->
+            val trimmed = host.host.trim()
+            trimmed.takeIf { it.isNotBlank() }?.let { host.copy(host = it) }
+        }.distinctBy { it.key }
 
         if (snapshotHosts.isEmpty()) {
             hostLatencies = emptyMap()
@@ -120,14 +122,12 @@ fun HostListCard(
             return@LaunchedEffect
         }
 
-        val normalizedHosts = snapshotHosts.map { it.trim() }
-
-        normalizedHosts.forEach { host ->
-            val key = hostKey(host)
+        snapshotHosts.forEach { host ->
+            val key = host.key
             launch {
-                var latencyResult = IpLatency(host, -1, false)
+                var latencyResult = IpLatency(host.host, -1, false)
                 for (endpoint in sortedEndpoints) {
-                    latencyResult = testLatency(host, endpoint.port)
+                    latencyResult = testLatency(host.host, endpoint.port)
                     if (latencyResult.isReachable) {
                         break
                     }
@@ -226,14 +226,18 @@ fun HostListCard(
                                         addErrorMessage = invalidHostString
                                     }
 
-                                    hosts.any { it.equals(trimmedHost, ignoreCase = true) } -> {
+                                    hosts.any { it.host.equals(trimmedHost, ignoreCase = true) } -> {
                                         addErrorMessage = alreadyExistsString
                                     }
 
                                     else -> {
-                                        hosts.add(trimmedHost)
+                                        val connectionHost = ConnectionHost(
+                                            host = trimmedHost,
+                                            manuallyAdded = true
+                                        )
+                                        hosts.add(connectionHost)
                                         listVersion++
-                                        val newKey = hostKey(trimmedHost)
+                                        val newKey = connectionHost.key
                                         hostLatencies = hostLatencies - newKey
                                         testingHosts = testingHosts + newKey
                                         showAddDialog = false
@@ -283,7 +287,7 @@ fun HostListCard(
                 },
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) { index, host, _ ->
-                val itemKey = hostKey(host)
+                val itemKey = host.key
                 key("$itemKey-$index-$listVersion") {
                     ReorderableItem {
                         val moveUpLabel = stringResource(R.string.move_up)
@@ -296,7 +300,7 @@ fun HostListCard(
                                         CustomAccessibilityAction(
                                             label = moveUpLabel,
                                             action = {
-                                                val currentIndex = hosts.indexOfFirst { hostKey(it) == itemKey }
+                                                val currentIndex = hosts.indexOfFirst { it.key == itemKey }
                                                 if (currentIndex > 0) {
                                                     val movedItem = hosts.removeAt(currentIndex)
                                                     hosts.add(currentIndex - 1, movedItem)
@@ -310,7 +314,7 @@ fun HostListCard(
                                         CustomAccessibilityAction(
                                             label = moveDownLabel,
                                             action = {
-                                                val currentIndex = hosts.indexOfFirst { hostKey(it) == itemKey }
+                                                val currentIndex = hosts.indexOfFirst { it.key == itemKey }
                                                 if (currentIndex >= 0 && currentIndex < hosts.lastIndex) {
                                                     val movedItem = hosts.removeAt(currentIndex)
                                                     hosts.add(currentIndex + 1, movedItem)
@@ -356,7 +360,7 @@ fun HostListCard(
                                     verticalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
                                     Text(
-                                        text = host,
+                                        text = host.host,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -419,7 +423,7 @@ fun HostListCard(
                                             if (index in hosts.indices) {
                                                 val removalIndex = index
                                                 val removedHost = hosts.removeAt(removalIndex)
-                                                val removedKey = hostKey(removedHost)
+                                                val removedKey = removedHost.key
                                                 hostLatencies = hostLatencies - removedKey
                                                 testingHosts = testingHosts - removedKey
                                                 listVersion++
@@ -431,7 +435,7 @@ fun HostListCard(
                                                         restoreHandled = true
                                                         val insertIndex = removalIndex.coerceIn(0, hosts.size)
                                                         hosts.add(insertIndex, removedHost)
-                                                        val newKey = hostKey(removedHost)
+                                                        val newKey = removedHost.key
                                                         hostLatencies = hostLatencies - newKey
                                                         testingHosts = testingHosts + newKey
                                                         listVersion++
@@ -471,8 +475,4 @@ fun HostListCard(
             }
         }
     }
-}
-
-private fun hostKey(host: String): String {
-    return host.trim().lowercase()
 }

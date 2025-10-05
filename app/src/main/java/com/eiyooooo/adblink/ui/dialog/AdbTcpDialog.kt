@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.data.ConnectionEndpoint
+import com.eiyooooo.adblink.data.ConnectionHost
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.entity.ConnectionType
@@ -127,7 +128,7 @@ fun AdbTcpDialog(onDismissRequest: () -> Unit) {
                             val tcpEndpoint = ConnectionEndpoint(port = port.toInt(), type = ConnectionType.TCP, manuallyAdded = true)
                             scope.launch {
                                 val existingDevice = DeviceRepository.devices.first().find {
-                                    it.hosts.any { existingHost -> existingHost.equals(host, ignoreCase = true) } &&
+                                    it.hosts.any { existingHost -> existingHost.host.equals(host, ignoreCase = true) } &&
                                             it.connectionEndpoints.any { endpoint ->
                                                 endpoint.type == ConnectionType.TCP && endpoint.port == tcpEndpoint.port
                                             }
@@ -135,7 +136,12 @@ fun AdbTcpDialog(onDismissRequest: () -> Unit) {
                                 if (existingDevice == null) {
                                     val device = Device.createWithDefaults(
                                         deviceName = host,
-                                        hosts = listOf(host),
+                                        hosts = listOf(
+                                            ConnectionHost(
+                                                host = host,
+                                                manuallyAdded = true
+                                            )
+                                        ),
                                         connectionEndpoints = listOf(tcpEndpoint),
                                     )
                                     DeviceRepository.addDevice(device)
