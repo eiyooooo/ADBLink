@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Wifi
@@ -384,7 +385,7 @@ private fun DeviceDetailContent(
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
+            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
             Column(
                 modifier = Modifier
@@ -449,7 +450,7 @@ private fun DeviceDetailContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
+            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
             Column(
                 modifier = Modifier
@@ -470,6 +471,44 @@ private fun DeviceDetailContent(
                     placeholder = { Text(stringResource(R.string.device_name_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+        }
+
+        if (detailType is DeviceDetailType.Discovered) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = stringResource(R.string.discovery_address_notice_icon_description),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.discovery_address_notice_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Text(
+                            text = stringResource(R.string.discovery_address_notice_description),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
 

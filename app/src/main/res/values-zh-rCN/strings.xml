@@ -49,6 +49,9 @@
     <string name="guide">指南</string>
 
     <string name="discovered_device_icon_description">发现设备图标</string>
+    <string name="discovery_address_notice_icon_description">信息图标</string>
+    <string name="discovery_address_notice_title">核对发现的地址</string>
+    <string name="discovery_address_notice_description">自动发现的主机地址可能不准确，添加前请确认与设备一致。</string>
     <string name="discovered_connect_devices_banner">发现 %1$d 个可连接设备</string>
     <string name="discovered_pairing_devices_banner">发现 %1$d 个可配对设备</string>
     <string name="view_discovered_devices">查看设备</string>

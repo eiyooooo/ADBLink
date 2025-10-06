@@ -49,6 +49,9 @@
     <string name="guide">Guide</string>
 
     <string name="discovered_device_icon_description">Discovered device icon</string>
+    <string name="discovery_address_notice_icon_description">Information icon</string>
+    <string name="discovery_address_notice_title">Verify discovered address</string>
+    <string name="discovery_address_notice_description">The automatically discovered host address may be inaccurate. Confirm it matches your device before adding.</string>
     <string name="discovered_connect_devices_banner">%1$d devices available for connection</string>
     <string name="discovered_pairing_devices_banner">%1$d devices available for pairing</string>
     <string name="view_discovered_devices">View Devices</string>
