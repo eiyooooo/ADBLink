@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.ext.SdkExtensions
 import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.ConnectionHost
+import com.eiyooooo.adblink.data.normalizeEndpointList
 import com.eiyooooo.adblink.data.normalizeHostList
 import com.eiyooooo.adblink.entity.ConnectionType
 import timber.log.Timber
@@ -18,20 +19,6 @@ data class DiscoveredDevice(
 ) {
 
     fun mergeWith(other: DiscoveredDevice): DiscoveredDevice {
-        val mergedHosts = normalizeHostList(hosts, other.hosts)
-
-        val mergedEndpoints = (connectionEndpoints + other.connectionEndpoints)
-            .groupBy { it.type to it.port }
-            .map { (typePort, endpoints) ->
-                val (type, port) = typePort
-                val lastUsed = endpoints.maxOfOrNull { endpoint -> endpoint.lastUsedTime } ?: 0L
-                ConnectionEndpoint(
-                    port = port,
-                    type = type,
-                    lastUsedTime = lastUsed
-                )
-            }
-
         val preferredServiceName = when {
             other.connectionEndpoints.any { it.type == ConnectionType.TLS } -> other.serviceName
             connectionEndpoints.any { it.type == ConnectionType.TLS } -> serviceName
@@ -40,8 +27,8 @@ data class DiscoveredDevice(
 
         return copy(
             serviceName = preferredServiceName,
-            hosts = mergedHosts,
-            connectionEndpoints = mergedEndpoints,
+            hosts = normalizeHostList(hosts, other.hosts),
+            connectionEndpoints = normalizeEndpointList(connectionEndpoints, other.connectionEndpoints),
             serviceTypes = serviceTypes + other.serviceTypes
         )
     }

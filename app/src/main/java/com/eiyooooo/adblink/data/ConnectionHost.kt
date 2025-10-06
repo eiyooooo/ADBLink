@@ -16,31 +16,34 @@ data class ConnectionHost(
     }
 }
 
-fun normalizeHostList(vararg hostList: List<ConnectionHost>): List<ConnectionHost> {
-    val allHosts = hostList.flatMap { it }
+fun normalizeHostList(vararg hostLists: List<ConnectionHost>): List<ConnectionHost> {
+    val capacity = hostLists.sumOf { it.size }.coerceAtLeast(16)
+    val map = LinkedHashMap<String, ConnectionHost>(capacity)
 
-    val normalized = mutableListOf<ConnectionHost>()
-    val indexByKey = mutableMapOf<String, Int>()
-
-    for (host in allHosts) {
-        val trimmed = host.host.trim()
-        if (trimmed.isEmpty()) continue
-
-        val sanitized = host.copy(host = trimmed)
-        val key = trimmed.lowercase()
-        val existingIndex = indexByKey[key]
-        if (existingIndex == null) {
-            indexByKey[key] = normalized.size
-            normalized.add(sanitized)
-        } else {
-            val existing = normalized[existingIndex]
-            normalized[existingIndex] = existing.copy(
-                host = sanitized.host,
-                lastUsedTime = maxOf(existing.lastUsedTime, sanitized.lastUsedTime),
-                manuallyAdded = existing.manuallyAdded || sanitized.manuallyAdded
-            )
+    for (list in hostLists) {
+        for (host in list) {
+            val trimmed = host.host.trim()
+            if (trimmed.isEmpty()) continue
+            val key = trimmed.lowercase()
+            val existing = map[key]
+            if (existing == null) {
+                map[key] = if (trimmed === host.host) {
+                    host
+                } else {
+                    host.copy(host = trimmed)
+                }
+            } else {
+                if (host.lastUsedTime > existing.lastUsedTime) {
+                    map[key] = existing.copy(
+                        lastUsedTime = host.lastUsedTime,
+                        manuallyAdded = existing.manuallyAdded || host.manuallyAdded
+                    )
+                } else if (!existing.manuallyAdded && host.manuallyAdded) {
+                    map[key] = existing.copy(manuallyAdded = true)
+                }
+            }
         }
     }
 
-    return normalized
+    return map.values.toList()
 }

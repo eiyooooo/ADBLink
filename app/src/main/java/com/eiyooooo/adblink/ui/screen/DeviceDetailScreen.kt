@@ -57,6 +57,7 @@ import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.ConnectionHost
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.data.normalizeEndpointList
 import com.eiyooooo.adblink.data.normalizeHostList
 import com.eiyooooo.adblink.entity.ConnectionType
 import com.eiyooooo.adblink.ui.component.info.DetailInfoRow
@@ -271,13 +272,12 @@ private fun DeviceDetailContent(
     when (detailType) {
         is DeviceDetailType.Discovered -> {
             LaunchedEffect(detailType.discoveredDevice.hosts) {
-                normalizeHostList(hostList, detailType.discoveredDevice.hosts).let {
-                    hostList.clear()
-                    hostList.addAll(it)
-                }
+                hostList.clear()
+                hostList.addAll(normalizeHostList(detailType.discoveredDevice.hosts))
             }
             LaunchedEffect(detailType.discoveredDevice.connectionEndpoints) {
-                mergeEndpoints(connectionEndpointList, detailType.discoveredDevice.connectionEndpoints)
+                connectionEndpointList.clear()
+                connectionEndpointList.addAll(normalizeEndpointList(detailType.discoveredDevice.connectionEndpoints))
             }
         }
 
@@ -287,7 +287,8 @@ private fun DeviceDetailContent(
                 hostList.addAll(normalizeHostList(detailType.device.hosts))
             }
             LaunchedEffect(detailType.device.connectionEndpoints) {
-                replaceEndpoints(connectionEndpointList, detailType.device.connectionEndpoints)
+                connectionEndpointList.clear()
+                connectionEndpointList.addAll(normalizeEndpointList(detailType.device.connectionEndpoints))
             }
         }
     }
@@ -366,7 +367,7 @@ private fun DeviceDetailContent(
     }
 
     val normalizedHosts = normalizeHostList(hostList)
-    val normalizedEndpoints = normalizeEndpoints(connectionEndpointList)
+    val normalizedEndpoints = normalizeEndpointList(connectionEndpointList)
 
     val actionEnabled = when (detailType) {
         is DeviceDetailType.Discovered ->
@@ -488,7 +489,7 @@ private fun DeviceDetailContent(
             showAddButton = true,
             onAddEndpoint = { newEndpoint ->
                 val existingIndex = connectionEndpointList.indexOfFirst { endpoint ->
-                    endpointKey(endpoint) == endpointKey(newEndpoint)
+                    endpoint.key == newEndpoint.key
                 }
                 if (existingIndex >= 0) {
                     connectionEndpointList[existingIndex] = newEndpoint
@@ -498,7 +499,7 @@ private fun DeviceDetailContent(
             },
             onRemoveEndpoint = { endpointToRemove ->
                 val removalIndex = connectionEndpointList.indexOfFirst { endpoint ->
-                    endpointKey(endpoint) == endpointKey(endpointToRemove)
+                    endpoint.key == endpointToRemove.key
                 }
                 if (removalIndex >= 0) {
                     val removedEndpoint = connectionEndpointList.removeAt(removalIndex)
@@ -519,7 +520,7 @@ private fun DeviceDetailContent(
                             detailType.discoveredDevice,
                             trimmedName,
                             normalizeHostList(hostList),
-                            sanitizeEndpointsForSave(connectionEndpointList, resetLastUsed = true)
+                            normalizeEndpointList(connectionEndpointList)
                         )
                     }
 
@@ -527,7 +528,7 @@ private fun DeviceDetailContent(
                         val sanitizedDevice = detailType.device.copy(
                             name = trimmedName,
                             hosts = normalizeHostList(hostList),
-                            connectionEndpoints = sanitizeEndpointsForSave(connectionEndpointList, resetLastUsed = false)
+                            connectionEndpoints = normalizeEndpointList(connectionEndpointList)
                         )
                         onSaveDevice(sanitizedDevice)
                     }
@@ -577,52 +578,5 @@ private fun DeviceDetailContent(
                 style = MaterialTheme.typography.titleMedium
             )
         }
-    }
-}
-
-private fun endpointKey(endpoint: ConnectionEndpoint): String {
-    return buildString {
-        append(endpoint.type)
-        append(":")
-        append(endpoint.port)
-    }
-}
-
-private fun mergeEndpoints(target: MutableList<ConnectionEndpoint>, newEndpoints: List<ConnectionEndpoint>) {
-    val normalized = normalizeEndpoints(newEndpoints)
-    if (target.isEmpty()) {
-        target.addAll(normalized)
-        return
-    }
-
-    val existingKeys = target.map { endpointKey(it) }.toMutableSet()
-    normalized.forEach { endpoint ->
-        val key = endpointKey(endpoint)
-        if (existingKeys.add(key)) {
-            target.add(endpoint)
-        }
-    }
-}
-
-private fun replaceEndpoints(target: MutableList<ConnectionEndpoint>, newEndpoints: List<ConnectionEndpoint>) {
-    target.clear()
-    target.addAll(normalizeEndpoints(newEndpoints))
-}
-
-private fun normalizeEndpoints(endpoints: List<ConnectionEndpoint>): List<ConnectionEndpoint> {
-    return endpoints
-        .filter { it.port in 1..65535 }
-        .distinctBy { endpointKey(it) }
-}
-
-private fun sanitizeEndpointsForSave(
-    endpoints: List<ConnectionEndpoint>,
-    resetLastUsed: Boolean
-): List<ConnectionEndpoint> {
-    val distinct = normalizeEndpoints(endpoints)
-    return if (resetLastUsed) {
-        distinct.map { it.copy(lastUsedTime = 0L) }
-    } else {
-        distinct
     }
 }
