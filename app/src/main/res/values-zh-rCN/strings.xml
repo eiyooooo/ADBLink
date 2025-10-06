@@ -92,6 +92,7 @@
     <string name="device_brand">品牌: %1$s</string>
     <string name="device_model">型号: %1$s</string>
     <string name="device_serial">序列号: %1$s</string>
+    <string name="device_name">名称: %1$s</string>
     <string name="connection_info">连接信息: %1$s</string>
     <string name="connected_via_usb">已通过 USB 连接</string>
     <string name="connected_via_tls">已通过 TLS (%1$s) 连接</string>

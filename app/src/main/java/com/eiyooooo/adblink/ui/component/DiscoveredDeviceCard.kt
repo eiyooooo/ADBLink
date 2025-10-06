@@ -92,8 +92,13 @@ fun DiscoveredDeviceCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                val deviceDisplayName = if (!device.deviceName.isNullOrBlank()) {
+                    stringResource(R.string.device_name, device.deviceName)
+                } else {
+                    stringResource(R.string.device_serial, device.deviceSerial)
+                }
                 Text(
-                    text = stringResource(R.string.device_serial, device.deviceSerial),
+                    text = deviceDisplayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )

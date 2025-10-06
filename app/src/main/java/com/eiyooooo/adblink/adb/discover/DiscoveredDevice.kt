@@ -15,7 +15,8 @@ data class DiscoveredDevice(
     val serviceName: String,
     val hosts: List<ConnectionHost>,
     val connectionEndpoints: List<ConnectionEndpoint>,
-    val serviceTypes: Set<AdbDiscoverServiceType>
+    val serviceTypes: Set<AdbDiscoverServiceType>,
+    val deviceName: String? = null
 ) {
 
     fun mergeWith(other: DiscoveredDevice): DiscoveredDevice {
@@ -68,6 +69,10 @@ data class DiscoveredDevice(
                 return null
             }
 
+            val deviceName = serviceInfo.attributes?.let { attrs ->
+                attrs["name"]?.toString(Charsets.UTF_8)?.takeIf { it.isNotBlank() }
+            }
+
             val connectionType = when (serviceType) {
                 AdbDiscoverServiceType.ADB_TCP -> ConnectionType.TCP
                 AdbDiscoverServiceType.ADB_TLS_CONNECT,
@@ -93,7 +98,8 @@ data class DiscoveredDevice(
                 serviceName = serviceInfo.serviceName,
                 hosts = hosts,
                 connectionEndpoints = endpoints,
-                serviceTypes = setOf(serviceType)
+                serviceTypes = setOf(serviceType),
+                deviceName = deviceName
             )
         }
     }

@@ -263,7 +263,10 @@ private fun DeviceDetailContent(
     var editedName by remember(detailType) {
         mutableStateOf(
             when (detailType) {
-                is DeviceDetailType.Discovered -> detailType.discoveredDevice.deviceSerial
+                is DeviceDetailType.Discovered -> detailType.discoveredDevice.deviceName.takeIf {
+                    !it.isNullOrBlank()
+                } ?: detailType.discoveredDevice.deviceSerial
+
                 is DeviceDetailType.Edit -> detailType.device.name
             }
         )
