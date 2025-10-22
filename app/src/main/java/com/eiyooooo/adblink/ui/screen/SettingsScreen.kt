@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DisplaySettings
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,7 @@ fun SettingsScreen(
     var selectedContent by rememberSaveable { mutableStateOf(NavRoutes.SETTINGS_ABOUT) }
     val castScrollState = rememberScrollState()
     val defaultParamsScrollState = rememberScrollState()
+    val connectionScrollState = rememberScrollState()
     val otherScrollState = rememberScrollState()
     val ipScrollState = rememberScrollState()
     val aboutScrollState = rememberScrollState()
@@ -70,6 +72,16 @@ fun SettingsScreen(
                     icon = Icons.Default.DisplaySettings,
                     onClick = {
                         navController.navigate(NavRoutes.SETTINGS_CAST)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsMenuItem(
+                    title = stringResource(R.string.connection_settings),
+                    icon = Icons.Default.Link,
+                    onClick = {
+                        navController.navigate(NavRoutes.SETTINGS_CONNECTION)
                     }
                 )
 
@@ -124,6 +136,17 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     SettingsMenuItem(
+                        title = stringResource(R.string.connection_settings),
+                        icon = Icons.Default.Link,
+                        isSelected = selectedContent == NavRoutes.SETTINGS_CONNECTION,
+                        onClick = {
+                            selectedContent = NavRoutes.SETTINGS_CONNECTION
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    SettingsMenuItem(
                         title = stringResource(R.string.other),
                         icon = Icons.Default.Tune,
                         isSelected = selectedContent == NavRoutes.SETTINGS_OTHER,
@@ -158,6 +181,7 @@ fun SettingsScreen(
                                     when (selectedContent) {
                                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> defaultParamsScrollState
                                         NavRoutes.SETTINGS_CAST -> castScrollState
+                                        NavRoutes.SETTINGS_CONNECTION -> connectionScrollState
                                         NavRoutes.SETTINGS_OTHER -> otherScrollState
                                         NavRoutes.SETTINGS_OTHER_IP -> ipScrollState
                                         NavRoutes.SETTINGS_ABOUT -> aboutScrollState
@@ -170,6 +194,7 @@ fun SettingsScreen(
                     when (selectedContent) {
                         NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS -> DefaultCastParametersSettingsContent()
                         NavRoutes.SETTINGS_CAST -> CastSettingsContent()
+                        NavRoutes.SETTINGS_CONNECTION -> ConnectionSettingsContent()
                         NavRoutes.SETTINGS_OTHER -> OtherSettingsContent { selectedContent = it }
                         NavRoutes.SETTINGS_OTHER_IP -> IpContent()
                         NavRoutes.SETTINGS_OTHER_LOG -> LogContent()

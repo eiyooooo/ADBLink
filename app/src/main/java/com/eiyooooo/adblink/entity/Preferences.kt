@@ -154,6 +154,13 @@ object Preferences {
     val enableUSBFlow
         get() = flowSharedPreferences.getBoolean("enableUSB", true).asFlow()
 
+    var enableAdbDiscoverService
+        get() = sharedPreferences.get("enableAdbDiscoverService", true)
+        set(value) = sharedPreferences.put("enableAdbDiscoverService", value)
+
+    val enableAdbDiscoverServiceFlow
+        get() = flowSharedPreferences.getBoolean("enableAdbDiscoverService", true).asFlow()
+
     var enableDelayedAck
         get() = sharedPreferences.get("enableDelayedAck", true)
         set(value) = sharedPreferences.put("enableDelayedAck", value)

@@ -72,30 +72,44 @@ object AdbManager {
             tcpConnectDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TCP) { infos ->
                 Timber.d("Discovered device: $infos")
                 DiscoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TCP)
-            }.apply {
-                start()
             }
 
             tlsConnectDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TLS_CONNECT) { infos ->
                 Timber.d("Discovered connect service: $infos")
                 DiscoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TLS_CONNECT)
-            }.apply {
-                start()
             }
 
             tlsPairingDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TLS_PAIRING) { infos ->
                 Timber.d("Discovered pairing service: $infos")
                 pairWithDiscoveredService(infos)
                 DiscoveredDeviceManager.handleDiscoveredPairingDevices(infos)
-            }.apply {
-                start()
             }
 
             initialized = true
+
+            if (Preferences.enableAdbDiscoverService) {
+                setDiscoverServicesEnabled(true)
+            }
             return true
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize AdbManager")
             return false
+        }
+    }
+
+    fun setDiscoverServicesEnabled(enabled: Boolean) {
+        if (!initialized) {
+            return
+        }
+
+        if (enabled) {
+            tcpConnectDiscoverService?.start()
+            tlsConnectDiscoverService?.start()
+            tlsPairingDiscoverService?.start()
+        } else {
+            tcpConnectDiscoverService?.stop()
+            tlsConnectDiscoverService?.stop()
+            tlsPairingDiscoverService?.stop()
         }
     }
 

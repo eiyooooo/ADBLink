@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.eiyooooo.adblink.ui.screen.AboutScreen
 import com.eiyooooo.adblink.ui.screen.CastSettingsScreen
+import com.eiyooooo.adblink.ui.screen.ConnectionSettingsScreen
 import com.eiyooooo.adblink.ui.screen.DefaultCastParametersSettingsScreen
 import com.eiyooooo.adblink.ui.screen.DeviceDetailScreen
 import com.eiyooooo.adblink.ui.screen.HomeScreen
@@ -52,11 +53,14 @@ fun AppNavHost(
             composable(route = NavRoutes.SETTINGS) {
                 SettingsScreen(widthSizeClass, navController)
             }
+            composable(route = NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS) {
+                DefaultCastParametersSettingsScreen()
+            }
             composable(route = NavRoutes.SETTINGS_CAST) {
                 CastSettingsScreen()
             }
-            composable(route = NavRoutes.SETTINGS_DEFAULT_CAST_PARAMETERS) {
-                DefaultCastParametersSettingsScreen()
+            composable(route = NavRoutes.SETTINGS_CONNECTION) {
+                ConnectionSettingsScreen()
             }
             composable(route = NavRoutes.SETTINGS_OTHER) {
                 OtherSettingsScreen(navController)
