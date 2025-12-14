@@ -15,8 +15,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,7 +78,7 @@ fun AdbTcpDialog(onDismissRequest: () -> Unit) {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
             ) {
-                TabRow(
+                PrimaryTabRow(
                     selectedTabIndex = selectedTabIndex
                 ) {
                     tabs.forEachIndexed { index, title ->

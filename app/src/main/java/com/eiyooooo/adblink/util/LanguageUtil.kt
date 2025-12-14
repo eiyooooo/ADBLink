@@ -12,7 +12,7 @@ object LanguageUtil {
         return when (Preferences.appLanguage) {
             0 -> applySystemLocale(context)
             1 -> applyLocale(context, Locale.ENGLISH)
-            2 -> applyLocale(context, Locale("zh", "CN"))
+            2 -> applyLocale(context, Locale.Builder().setLanguage("zh").setRegion("CN").build())
             else -> applySystemLocale(context)
         }
     }
