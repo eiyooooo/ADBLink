@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,12 +31,14 @@ import java.util.concurrent.TimeoutException
 
 internal class AdbConnectionManager(
     private val adbKeyPair: AdbKeyPair,
-    private val adbScope: CoroutineScope,
-    private val connectionSessions: MutableStateFlow<Map<String, ConnectionSession>>
+    private val adbScope: CoroutineScope
 ) {
 
+    private val _connectionSessions = MutableStateFlow<Map<String, ConnectionSession>>(emptyMap())
+    val connectionSessions: StateFlow<Map<String, ConnectionSession>> = _connectionSessions
+
     fun connectDevice(device: Device) {
-        connectionSessions.value[device.uuid]?.job?.cancel()
+        _connectionSessions.value[device.uuid]?.job?.cancel()
 
         val job = adbScope.launch {
             val currentJob = coroutineContext[Job]
@@ -203,7 +206,7 @@ internal class AdbConnectionManager(
     }
 
     fun reconnectDevice(device: Device) {
-        val session = connectionSessions.value[device.uuid]
+        val session = _connectionSessions.value[device.uuid]
         val currentConnection = session?.connection
         val currentState = session?.status?.toConnectionState()
 
@@ -251,7 +254,7 @@ internal class AdbConnectionManager(
     }
 
     fun disconnectDevice(deviceUuid: String) {
-        val session = connectionSessions.value[deviceUuid]
+        val session = _connectionSessions.value[deviceUuid]
         session?.job?.cancel()
         safeCloseConnection(session?.connection)
 
@@ -311,7 +314,7 @@ internal class AdbConnectionManager(
     }
 
     private inline fun updateSession(deviceUuid: String, block: (ConnectionSession) -> ConnectionSession) {
-        connectionSessions.update { sessions ->
+        _connectionSessions.update { sessions ->
             val current = sessions[deviceUuid] ?: ConnectionSession()
             sessions + (deviceUuid to block(current))
         }
