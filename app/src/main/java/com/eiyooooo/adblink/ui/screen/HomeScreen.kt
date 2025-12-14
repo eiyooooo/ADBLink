@@ -212,6 +212,7 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostContr
                 deviceToDelete = null
             }
         )
+        deviceToDelete
     }
 
     pairingDeviceDialog?.let { device ->
@@ -219,5 +220,6 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostContr
             onDismissRequest = { pairingDeviceDialog = null },
             discoveredDevice = device
         )
+        pairingDeviceDialog
     }
 }

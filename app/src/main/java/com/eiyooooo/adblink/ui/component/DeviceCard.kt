@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
+import com.eiyooooo.adblink.data.ConnectionSession
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.entity.ConnectionState
 
@@ -46,8 +47,10 @@ fun DeviceCard(
     onEditClick: (Device) -> Unit,
     onDeleteClick: (Device) -> Unit
 ) {
-    val connectionStates by AdbManager.deviceConnectionStates.collectAsState()
-    val connectionState = connectionStates[device.uuid] ?: ConnectionState.DISCONNECTED
+    val connectionSessions by AdbManager.connectionSessions.collectAsState()
+    val connectionSession = connectionSessions[device.uuid] ?: ConnectionSession()
+    val connectionState = connectionSession.status.toConnectionState()
+    val lastNetworkTarget = connectionSession.activeTarget
 
     val (icon, backgroundColor) = when (connectionState) {
         ConnectionState.DISCONNECTED -> Pair(
@@ -85,13 +88,13 @@ fun DeviceCard(
         ConnectionState.CONNECTING_AWAITING_AUTHORIZATION -> stringResource(R.string.connection_awaiting_permission)
         ConnectionState.CONNECTED_USB -> stringResource(R.string.connected_via_usb)
         ConnectionState.CONNECTED_TLS -> {
-            device.lastConnectedEndpoint?.let {
+            lastNetworkTarget?.let {
                 stringResource(R.string.connected_via_tls, "${it.host}:${it.port}")
             } ?: stringResource(R.string.connected_via_tls_no_host_port)
         }
 
         ConnectionState.CONNECTED_TCP -> {
-            device.lastConnectedEndpoint?.let {
+            lastNetworkTarget?.let {
                 stringResource(R.string.connected_via_tcp, "${it.host}:${it.port}")
             } ?: stringResource(R.string.connected_via_tcp_no_host_port)
         }

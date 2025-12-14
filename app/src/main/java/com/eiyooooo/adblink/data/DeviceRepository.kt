@@ -44,13 +44,12 @@ object DeviceRepository {
     }
 
     suspend fun updateDevice(device: Device, update: (Device) -> Device) {
-        val oldDevice = device
         val updatedDevice = update(device)
         if (updatedDevice.usbDevice != null) {
             updateUsbDevice(updatedDevice.uuid, updatedDevice.usbDevice)
         }
         deviceDao.updateDevice(DeviceEntity.fromDevice(updatedDevice))
-        AdbManager.reconnectDevice(oldDevice, updatedDevice)
+        AdbManager.reconnectDevice(updatedDevice)
     }
 
     suspend fun removeDevice(uuid: String) {
@@ -84,7 +83,7 @@ object DeviceRepository {
     suspend fun reconnectAllDevices() {
         val currentDevices = devices.first()
         currentDevices.forEach { device ->
-            AdbManager.connectDevice(device)
+            AdbManager.reconnectDevice(device)
         }
     }
 
