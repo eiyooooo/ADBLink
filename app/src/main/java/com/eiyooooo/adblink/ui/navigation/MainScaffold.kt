@@ -287,4 +287,7 @@ fun MainScaffold(navController: NavHostController, windowSizeClass: WindowSizeCl
             }
         }
     }
+    showUsbDeviceDialog
+    showAdbTcpDeviceDialog
+    showAdbTlsDeviceDialog
 }

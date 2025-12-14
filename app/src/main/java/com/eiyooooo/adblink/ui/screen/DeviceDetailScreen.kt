@@ -44,7 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -135,7 +135,7 @@ private fun DeviceDetailScreenContent(
     deviceDetailType: DeviceDetailType?,
     navController: NavHostController
 ) {
-    val context = LocalContext.current
+    val resources = LocalResources.current
 
     val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
@@ -160,11 +160,11 @@ private fun DeviceDetailScreenContent(
                                     DeviceRepository.updateDevice(deviceDetailType.device) {
                                         updatedDevice
                                     }
-                                    SnackbarManager.show(context.getString(R.string.device_info_updated))
+                                    SnackbarManager.show(resources.getString(R.string.device_info_updated))
                                     navController.popBackStack()
                                 } catch (e: Exception) {
                                     Timber.e(e, "Failed to update device")
-                                    SnackbarManager.show(context.getString(R.string.save_failed))
+                                    SnackbarManager.show(resources.getString(R.string.save_failed))
                                 } finally {
                                     isSaving = false
                                 }
@@ -197,11 +197,11 @@ private fun DeviceDetailScreenContent(
                                         }
                                     )
                                     DeviceRepository.addDevice(device)
-                                    SnackbarManager.show(context.getString(R.string.device_info_updated))
+                                    SnackbarManager.show(resources.getString(R.string.device_info_updated))
                                     navController.popBackStack()
                                 } catch (e: Exception) {
                                     Timber.e(e, "Failed to add device")
-                                    SnackbarManager.show(context.getString(R.string.save_failed))
+                                    SnackbarManager.show(resources.getString(R.string.save_failed))
                                 } finally {
                                     isAddingDevice = false
                                 }
@@ -256,7 +256,7 @@ private fun DeviceDetailContent(
     onAddDevice: (DiscoveredDevice, String, List<ConnectionHost>, List<ConnectionEndpoint>) -> Unit = { _, _, _, _ -> },
     onSaveDevice: (Device) -> Unit = {}
 ) {
-    val context = LocalContext.current
+    val resources = LocalResources.current
 
     val hostList = remember(detailType) { mutableStateListOf<ConnectionHost>() }
     val connectionEndpointList = remember(detailType) { mutableStateListOf<ConnectionEndpoint>() }
@@ -518,8 +518,8 @@ private fun DeviceDetailContent(
                 endpoints = endpointSnapshot,
                 showAddButton = true,
                 onRemoveHost = { removedHost, _, restore ->
-                    val message = context.getString(R.string.device_host_removed_message, removedHost.host.trim())
-                    SnackbarManager.show(message, context.getString(R.string.undo), dismissCurrent = false) {
+                    val message = resources.getString(R.string.device_host_removed_message, removedHost.host.trim())
+                    SnackbarManager.show(message, resources.getString(R.string.undo), dismissCurrent = false) {
                         restore()
                     }
                 }
@@ -545,8 +545,8 @@ private fun DeviceDetailContent(
                 }
                 if (removalIndex >= 0) {
                     val removedEndpoint = connectionEndpointList.removeAt(removalIndex)
-                    val message = context.getString(R.string.device_port_removed_message, removedEndpoint.port)
-                    SnackbarManager.show(message, context.getString(R.string.undo), dismissCurrent = false) {
+                    val message = resources.getString(R.string.device_port_removed_message, removedEndpoint.port)
+                    SnackbarManager.show(message, resources.getString(R.string.undo), dismissCurrent = false) {
                         val insertIndex = removalIndex.coerceIn(0, connectionEndpointList.size)
                         connectionEndpointList.add(insertIndex, removedEndpoint)
                     }

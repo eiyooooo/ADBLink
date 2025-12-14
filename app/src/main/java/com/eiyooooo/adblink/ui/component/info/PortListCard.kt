@@ -33,7 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,7 +50,7 @@ fun PortListCard(
     onRemoveEndpoint: (ConnectionEndpoint) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    val resources = LocalResources.current
 
     var showAddDialog by remember { mutableStateOf(false) }
     var portInput by remember { mutableStateOf("") }
@@ -210,7 +210,7 @@ fun PortListCard(
                     onClick = {
                         val portNumber = portInput.trim().toIntOrNull()
                         if (portNumber == null || portNumber !in 1..65535) {
-                            addErrorMessage = context.getString(R.string.connection_port_invalid_error)
+                            addErrorMessage = resources.getString(R.string.connection_port_invalid_error)
                             return@TextButton
                         }
 
@@ -239,4 +239,6 @@ fun PortListCard(
             }
         )
     }
+    showAddDialog
+    addErrorMessage
 }

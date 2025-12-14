@@ -20,7 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
@@ -30,7 +30,7 @@ import com.eiyooooo.adblink.util.getIp
 
 @Composable
 fun IpContent() {
-    val context = LocalContext.current
+    val resources = LocalResources.current
 
     val ipv4List = remember { mutableStateListOf<String>() }
     val ipv6List = remember { mutableStateListOf<String>() }
@@ -45,7 +45,7 @@ fun IpContent() {
 
     fun copyIpToClipboard(ip: String) {
         SystemServices.clipboardManager.setPrimaryClip(ClipData.newPlainText(ClipDescription.MIMETYPE_TEXT_PLAIN, ip))
-        SnackbarManager.show(context.getString(R.string.copied))
+        SnackbarManager.show(resources.getString(R.string.copied))
     }
 
     @Composable

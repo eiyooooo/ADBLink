@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
@@ -28,7 +28,7 @@ private val maxVideoBitList = listOf("8", "6", "4", "2", "1")
 
 @Composable
 fun DefaultCastParametersSettingsContent() {
-    val context = LocalContext.current
+    val resources = LocalResources.current
 
     val defaultCastMaxSize by Preferences.defaultCastMaxSizeFlow.collectAsState(initial = Preferences.defaultCastMaxSize)
     val defaultCastMaxFps by Preferences.defaultCastMaxFpsFlow.collectAsState(initial = Preferences.defaultCastMaxFps)
@@ -52,7 +52,7 @@ fun DefaultCastParametersSettingsContent() {
             },
             options = listOf(stringResource(R.string.cast_max_size_original), "2560", "1920", "1600", "1280", "1024", "800"),
             onValueChange = { size ->
-                val sizeValue = if (size == context.getString(R.string.cast_max_size_original)) 0 else size.toInt()
+                val sizeValue = if (size == resources.getString(R.string.cast_max_size_original)) 0 else size.toInt()
                 Preferences.defaultCastMaxSize = sizeValue
             },
             isFirst = true

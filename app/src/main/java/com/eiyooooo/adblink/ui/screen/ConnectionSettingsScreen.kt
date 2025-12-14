@@ -22,7 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
@@ -34,7 +34,7 @@ import com.eiyooooo.adblink.ui.component.SettingSwitchItem
 
 @Composable
 fun ConnectionSettingsContent() {
-    val context = LocalContext.current
+    val resources = LocalResources.current
 
     val enableDelayedAck by Preferences.enableDelayedAckFlow.collectAsState(initial = Preferences.enableDelayedAck)
     val enableUSB by Preferences.enableUSBFlow.collectAsState(initial = Preferences.enableUSB)
@@ -97,10 +97,10 @@ fun ConnectionSettingsContent() {
             options = timeoutList,
             onValueChange = { selectedTimeout ->
                 val timeoutValue = when (selectedTimeout) {
-                    context.getString(R.string.timeout_5_seconds) -> 5
-                    context.getString(R.string.timeout_10_seconds) -> 10
-                    context.getString(R.string.timeout_20_seconds) -> 20
-                    context.getString(R.string.timeout_30_seconds) -> 30
+                    resources.getString(R.string.timeout_5_seconds) -> 5
+                    resources.getString(R.string.timeout_10_seconds) -> 10
+                    resources.getString(R.string.timeout_20_seconds) -> 20
+                    resources.getString(R.string.timeout_30_seconds) -> 30
                     else -> 10
                 }
                 Preferences.adbConnectionTimeout = timeoutValue
@@ -146,6 +146,7 @@ fun ConnectionSettingsContent() {
                 }
             }
         )
+        showRegenerateKeyDialog
     }
 }
 

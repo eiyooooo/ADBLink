@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,6 +60,7 @@ import timber.log.Timber
 @Composable
 fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevice? = null) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
 
     val foregroundColor = MaterialTheme.colorScheme.onSurface
@@ -98,7 +100,7 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevic
     LaunchedEffect(qrPairingSuccess) {
         if (qrPairingSuccess) {
             AdbManager.resetQrPairingSuccess()
-            SnackbarManager.show(context.getString(R.string.pairing_success))
+            SnackbarManager.show(resources.getString(R.string.pairing_success))
             onDismissRequest()
         }
     }
@@ -159,14 +161,14 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevic
                 when (selectedTabIndex) {
                     0 -> GuideTab(
                         onGuideClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, context.getString(R.string.adb_tls_enable_guide_url).toUri()).apply {
+                            val intent = Intent(Intent.ACTION_VIEW, resources.getString(R.string.adb_tls_enable_guide_url).toUri()).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             try {
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 Timber.e(e, "Failed to open browser")
-                                message = context.getString(R.string.open_browser_failed)
+                                message = resources.getString(R.string.open_browser_failed)
                             }
                         }
                     )
@@ -186,7 +188,7 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevic
                         onPairClick = {
                             val parts = pairingHostPort.trim().split(":")
                             if (parts.size != 2) {
-                                message = context.getString(R.string.invalid_host_port_code)
+                                message = resources.getString(R.string.invalid_host_port_code)
                                 return@CodePairContent
                             }
 
@@ -194,7 +196,7 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevic
                             val port = parts[1]
 
                             if (!host.isValidHostAddress() || !port.isValidPort() || pairingCode.isBlank()) {
-                                message = context.getString(R.string.invalid_host_port_code)
+                                message = resources.getString(R.string.invalid_host_port_code)
                                 return@CodePairContent
                             }
 
@@ -203,10 +205,10 @@ fun AdbTlsDialog(onDismissRequest: () -> Unit, discoveredDevice: DiscoveredDevic
                                 val pairResult = AdbManager.pair(host, port.toInt(), pairingCode)
                                 isPairing = false
                                 if (pairResult) {
-                                    SnackbarManager.show(context.getString(R.string.pairing_success))
+                                    SnackbarManager.show(resources.getString(R.string.pairing_success))
                                     onDismissRequest()
                                 } else {
-                                    message = context.getString(R.string.pairing_failed)
+                                    message = resources.getString(R.string.pairing_failed)
                                 }
                             }
                         }

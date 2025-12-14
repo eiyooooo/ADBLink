@@ -24,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -38,6 +39,7 @@ import com.eiyooooo.adblink.util.FLog
 @Composable
 fun OtherSettingsContent(navController: NavController? = null, onSelectedContentChange: (String) -> Unit = {}) {
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     val systemColor by Preferences.systemColorFlow.collectAsState(initial = Preferences.systemColor)
     val darkTheme by Preferences.darkThemeFlow.collectAsState(initial = Preferences.darkTheme)
@@ -95,9 +97,9 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
             options = darkThemeList,
             onValueChange = {
                 Preferences.darkTheme = when (it) {
-                    context.getString(R.string.follow_system) -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                    context.getString(R.string.always_off) -> AppCompatDelegate.MODE_NIGHT_NO
-                    context.getString(R.string.always_on) -> AppCompatDelegate.MODE_NIGHT_YES
+                    resources.getString(R.string.follow_system) -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                    resources.getString(R.string.always_off) -> AppCompatDelegate.MODE_NIGHT_NO
+                    resources.getString(R.string.always_on) -> AppCompatDelegate.MODE_NIGHT_YES
                     else -> darkTheme
                 }
                 AppCompatDelegate.setDefaultNightMode(Preferences.darkTheme)
@@ -119,9 +121,9 @@ fun OtherSettingsContent(navController: NavController? = null, onSelectedContent
             options = languageList,
             onValueChange = { language ->
                 val newValue = when (language) {
-                    context.getString(R.string.system_language) -> 0
-                    context.getString(R.string.english) -> 1
-                    context.getString(R.string.simplified_chinese) -> 2
+                    resources.getString(R.string.system_language) -> 0
+                    resources.getString(R.string.english) -> 1
+                    resources.getString(R.string.simplified_chinese) -> 2
                     else -> 0
                 }
                 if (newValue != Preferences.appLanguage) {

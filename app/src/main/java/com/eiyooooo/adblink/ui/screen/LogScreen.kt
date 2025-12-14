@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
@@ -63,6 +64,7 @@ enum class DialogType {
 @Composable
 fun LogContent() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
 
     var selectedDevice by remember { mutableStateOf<String?>(null) }
@@ -110,14 +112,14 @@ fun LogContent() {
 
     fun refreshLog() {
         coroutineScope.launch {
-            devicesList = listOf(context.getString(R.string.app_log)) + DLog.getAllDeviceIds()
+            devicesList = listOf(resources.getString(R.string.app_log)) + DLog.getAllDeviceIds()
             fullLogText = if (currentUuid == null) {
                 FLog.read() ?: ""
             } else {
                 DLog.getLogs(currentUuid!!)
             }
             splitLogIntoPages(fullLogText)
-            SnackbarManager.show(context.getString(R.string.log_refresh_success))
+            SnackbarManager.show(resources.getString(R.string.log_refresh_success))
         }
     }
 
@@ -127,15 +129,15 @@ fun LogContent() {
                 if (FLog.clear()) {
                     fullLogText = ""
                     splitLogIntoPages(fullLogText)
-                    SnackbarManager.show(context.getString(R.string.log_clear_success))
+                    SnackbarManager.show(resources.getString(R.string.log_clear_success))
                 } else {
-                    SnackbarManager.show(context.getString(R.string.log_clear_failed))
+                    SnackbarManager.show(resources.getString(R.string.log_clear_failed))
                 }
             } else {
                 DLog.clearLogs(currentUuid)
                 fullLogText = ""
                 splitLogIntoPages(fullLogText)
-                SnackbarManager.show(context.getString(R.string.log_clear_success))
+                SnackbarManager.show(resources.getString(R.string.log_clear_success))
             }
         }
     }
@@ -151,7 +153,7 @@ fun LogContent() {
     }
 
     LaunchedEffect(Unit) {
-        devicesList = listOf(context.getString(R.string.app_log)) + DLog.getAllDeviceIds()
+        devicesList = listOf(resources.getString(R.string.app_log)) + DLog.getAllDeviceIds()
         selectedDevice = devicesList.firstOrNull()
         coroutineScope.launch {
             fullLogText = FLog.read() ?: ""
@@ -202,6 +204,7 @@ fun LogContent() {
                 }
             }
         )
+        showDialog
     }
 
     Column {
@@ -221,7 +224,7 @@ fun LogContent() {
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    placeholder = { Text(context.getString(R.string.app_log)) },
+                    placeholder = { Text(resources.getString(R.string.app_log)) },
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                     modifier = Modifier
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
@@ -240,7 +243,7 @@ fun LogContent() {
                                 expanded = false
 
                                 coroutineScope.launch {
-                                    if (device == context.getString(R.string.app_log)) {
+                                    if (device == resources.getString(R.string.app_log)) {
                                         currentUuid = null
                                         fullLogText = FLog.read() ?: ""
                                     } else {

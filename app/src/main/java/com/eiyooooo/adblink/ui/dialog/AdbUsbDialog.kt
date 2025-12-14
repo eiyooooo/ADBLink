@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,6 +38,7 @@ import timber.log.Timber
 @Composable
 fun AdbUsbDialog(onDismissRequest: () -> Unit) {
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     var message by remember { mutableStateOf("") }
     val authorizationStatus by AdbUsbDeviceReceiver.INSTANCE.authorizationStatus.collectAsState()
@@ -71,14 +73,14 @@ fun AdbUsbDialog(onDismissRequest: () -> Unit) {
 
                 ElevatedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, context.getString(R.string.adb_enable_guide_url).toUri()).apply {
+                        val intent = Intent(Intent.ACTION_VIEW, resources.getString(R.string.adb_enable_guide_url).toUri()).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                         try {
                             context.startActivity(intent)
                         } catch (e: Exception) {
                             Timber.e(e, "Failed to open browser")
-                            message = context.getString(R.string.open_browser_failed)
+                            message = resources.getString(R.string.open_browser_failed)
                         }
                     },
                     modifier = Modifier

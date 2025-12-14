@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +52,7 @@ import timber.log.Timber
 @Composable
 fun AdbTcpDialog(onDismissRequest: () -> Unit) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
 
     var message by remember { mutableStateOf("") }
@@ -103,14 +105,14 @@ fun AdbTcpDialog(onDismissRequest: () -> Unit) {
                 when (selectedTabIndex) {
                     0 -> GuideTab(
                         onGuideClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, context.getString(R.string.adb_tcp_enable_guide_url).toUri()).apply {
+                            val intent = Intent(Intent.ACTION_VIEW, resources.getString(R.string.adb_tcp_enable_guide_url).toUri()).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             try {
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 Timber.e(e, "Failed to open browser")
-                                message = context.getString(R.string.open_browser_failed)
+                                message = resources.getString(R.string.open_browser_failed)
                             }
                         }
                     )
@@ -122,7 +124,7 @@ fun AdbTcpDialog(onDismissRequest: () -> Unit) {
                         onPortChange = { port = it.filter { char -> char.isDigit() } },
                         onConnectClick = {
                             if (!host.isValidHostAddress() || !port.isValidPort()) {
-                                message = context.getString(R.string.invalid_host_or_port)
+                                message = resources.getString(R.string.invalid_host_or_port)
                                 return@ConnectTab
                             }
                             val tcpEndpoint = ConnectionEndpoint(port = port.toInt(), type = ConnectionType.TCP, manuallyAdded = true)
@@ -146,10 +148,10 @@ fun AdbTcpDialog(onDismissRequest: () -> Unit) {
                                     )
                                     DeviceRepository.addDevice(device)
                                     Timber.d("Added device to repository via AdbTcpDialog: $host:$port")
-                                    SnackbarManager.show(context.getString(R.string.device_added))
+                                    SnackbarManager.show(resources.getString(R.string.device_added))
                                     onDismissRequest()
                                 } else {
-                                    message = context.getString(R.string.device_already_exists)
+                                    message = resources.getString(R.string.device_already_exists)
                                 }
                             }
                         }
