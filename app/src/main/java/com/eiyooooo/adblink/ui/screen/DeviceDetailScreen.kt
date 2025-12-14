@@ -51,9 +51,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
-import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.ConnectionHost
 import com.eiyooooo.adblink.data.Device
@@ -83,7 +83,7 @@ fun DeviceDetailScreen(
     navController: NavHostController
 ) {
     val devices by DeviceRepository.devices.collectAsState(initial = emptyList())
-    val discoveredConnectDevices by DiscoveredDeviceManager.discoveredConnectDevices.collectAsState()
+    val discoveredConnectDevices by AdbManager.discoveredConnectDevices.collectAsState()
 
     var deviceDetailType by remember { mutableStateOf<DeviceDetailType?>(null) }
 

@@ -3,17 +3,13 @@ package com.eiyooooo.adblink.adb.discover
 import android.net.nsd.NsdServiceInfo
 import com.eiyooooo.adblink.entity.ConnectionType
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-object DiscoveredDeviceManager {
-
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+class DiscoveredDeviceManager(private val scope: CoroutineScope) {
 
     private val _discoveredConnectDevices = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
     val discoveredConnectDevices: StateFlow<List<DiscoveredDevice>> = _discoveredConnectDevices

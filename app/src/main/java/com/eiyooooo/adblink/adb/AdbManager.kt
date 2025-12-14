@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import com.eiyooooo.adblink.adb.discover.AdbDiscoverService
 import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
+import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.application
 import com.eiyooooo.adblink.data.ConnectionSession
@@ -29,6 +30,12 @@ object AdbManager {
     private var tlsConnectDiscoverService: AdbDiscoverService? = null
     private var tlsPairingDiscoverService: AdbDiscoverService? = null
 
+    private val discoveredDeviceManager = DiscoveredDeviceManager(adbScope)
+    val discoveredConnectDevices: StateFlow<List<DiscoveredDevice>>
+        get() = discoveredDeviceManager.discoveredConnectDevices
+    val discoveredPairingDevices: StateFlow<List<DiscoveredDevice>>
+        get() = discoveredDeviceManager.discoveredPairingDevices
+
     private lateinit var adbConnectionManager: AdbConnectionManager
     val connectionSessions: StateFlow<Map<String, ConnectionSession>>
         get() = adbConnectionManager.connectionSessions
@@ -49,18 +56,18 @@ object AdbManager {
 
             tcpConnectDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TCP) { infos ->
                 Timber.d("Discovered device: $infos")
-                DiscoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TCP)
+                discoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TCP)
             }
 
             tlsConnectDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TLS_CONNECT) { infos ->
                 Timber.d("Discovered connect service: $infos")
-                DiscoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TLS_CONNECT)
+                discoveredDeviceManager.handleDiscoveredConnectDevices(infos, AdbDiscoverServiceType.ADB_TLS_CONNECT)
             }
 
             tlsPairingDiscoverService = AdbDiscoverService(AdbDiscoverServiceType.ADB_TLS_PAIRING) { infos ->
                 Timber.d("Discovered pairing service: $infos")
                 adbPairingManager.pairWithDiscoveredService(infos)
-                DiscoveredDeviceManager.handleDiscoveredPairingDevices(infos)
+                discoveredDeviceManager.handleDiscoveredPairingDevices(infos)
             }
 
             adbConnectionManager = AdbConnectionManager(adbKeyPair, adbScope)

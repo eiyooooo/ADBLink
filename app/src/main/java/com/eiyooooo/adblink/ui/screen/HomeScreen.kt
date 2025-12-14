@@ -38,8 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
+import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
-import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
 import com.eiyooooo.adblink.ui.component.DeviceCard
@@ -58,8 +58,8 @@ fun HomeScreen(widthSizeClass: WindowWidthSizeClass, navController: NavHostContr
     val coroutineScope = rememberCoroutineScope()
 
     val devices by DeviceRepository.devices.collectAsState(initial = emptyList())
-    val discoveredConnectDevices by DiscoveredDeviceManager.discoveredConnectDevices.collectAsState()
-    val discoveredPairingDevices by DiscoveredDeviceManager.discoveredPairingDevices.collectAsState()
+    val discoveredConnectDevices by AdbManager.discoveredConnectDevices.collectAsState()
+    val discoveredPairingDevices by AdbManager.discoveredPairingDevices.collectAsState()
 
     var deviceToDelete by remember { mutableStateOf<Device?>(null) }
     var pairingDeviceDialog by remember { mutableStateOf<DiscoveredDevice?>(null) }
