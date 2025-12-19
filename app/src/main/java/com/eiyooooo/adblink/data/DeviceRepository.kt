@@ -37,7 +37,7 @@ object DeviceRepository {
 
     suspend fun addDevice(device: Device) {
         if (device.usbDevice != null) {
-            updateUsbDevice(device.uuid, device.usbDevice)
+            updateUsbDevice(device, device.usbDevice)
         }
         deviceDao.insertDevice(DeviceEntity.fromDevice(device))
         AdbManager.connectDevice(device)
@@ -46,7 +46,7 @@ object DeviceRepository {
     suspend fun updateDevice(device: Device, update: (Device) -> Device) {
         val updatedDevice = update(device)
         if (updatedDevice.usbDevice != null) {
-            updateUsbDevice(updatedDevice.uuid, updatedDevice.usbDevice)
+            updateUsbDevice(updatedDevice, updatedDevice.usbDevice)
         }
         deviceDao.updateDevice(DeviceEntity.fromDevice(updatedDevice))
         AdbManager.reconnectDevice(updatedDevice)
@@ -62,18 +62,21 @@ object DeviceRepository {
         AdbManager.disconnectDevice(uuid)
     }
 
-    fun updateUsbDevice(uuid: String, usbDevice: UsbDevice?) {
+    fun updateUsbDevice(device: Device, usbDevice: UsbDevice?, needReconnect: Boolean = false) {
         val currentMap = usbDeviceMap.value.toMutableMap()
-        val existingDevice = currentMap[uuid]
+        val existingDevice = currentMap[device.uuid]
         if (existingDevice == usbDevice) {
             return
         }
         if (usbDevice == null) {
-            currentMap.remove(uuid)
+            currentMap.remove(device.uuid)
         } else {
-            currentMap[uuid] = usbDevice
+            currentMap[device.uuid] = usbDevice
         }
         usbDeviceMap.value = currentMap
+        if (needReconnect) {
+            AdbManager.reconnectDevice(device.copy(usbDevice = usbDevice))
+        }
     }
 
     fun clearAllUsbDevices() {

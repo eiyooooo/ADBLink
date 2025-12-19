@@ -214,33 +214,69 @@ internal class AdbConnectionManager(
         // Check if device connection method has changed or connection is broken
         val isConnected = currentState in connectedStateList
         val shouldReconnect = when {
-            currentConnection == null -> true
-            !isConnected -> true
-            !currentConnection.isConnected -> true
-            !currentConnection.isConnectionEstablished -> true
+            currentState == ConnectionState.CONNECTING_AWAITING_AUTHORIZATION -> {
+                Timber.d("Reconnect decision for ${device.uuid}: awaiting authorization")
+                false
+            }
+
+            currentConnection == null -> {
+                Timber.d("Reconnect decision for ${device.uuid}: no active connection")
+                true
+            }
+
+            !isConnected -> {
+                Timber.d("Reconnect decision for ${device.uuid}: not in connected state (${currentState?.name ?: "unknown"})")
+                true
+            }
+
+            !currentConnection.isConnected -> {
+                Timber.d("Reconnect decision for ${device.uuid}: connection not connected")
+                true
+            }
+
+            !currentConnection.isConnectionEstablished -> {
+                Timber.d("Reconnect decision for ${device.uuid}: connection not established")
+                true
+            }
+
             else -> {
                 // Check if the connection method preferences have changed
                 // Priority: USB > TLS > TCP, so if higher priority method is now available, reconnect
                 when {
                     // If USB is available but we're not using USB connection, reconnect
-                    device.usbDevice != null && (session.status !is ConnectionStatus.Connected || session.status.transport != ConnectionTransport.USB) -> true
+                    device.usbDevice != null && (session.status !is ConnectionStatus.Connected || session.status.transport != ConnectionTransport.USB) -> {
+                        Timber.d("Reconnect decision for ${device.uuid}: USB available and not using USB")
+                        true
+                    }
                     // If USB is not available but TLS endpoint is available and we're using TCP, reconnect
                     device.usbDevice == null &&
                             device.connectionEndpoints.any { it.type == ConnectionType.TLS } &&
                             session.status is ConnectionStatus.Connected &&
-                            session.status.transport == ConnectionTransport.TCP -> true
+                            session.status.transport == ConnectionTransport.TCP -> {
+                        Timber.d("Reconnect decision for ${device.uuid}: TLS available and currently on TCP")
+                        true
+                    }
                     // If currently connected endpoint is no longer available, reconnect
                     session.status is ConnectionStatus.Connected &&
                             session.status.transport != ConnectionTransport.USB &&
                             session.lastEndpoint != null &&
-                            !device.connectionEndpoints.any { it.key == session.lastEndpoint.key } -> true
+                            !device.connectionEndpoints.any { it.key == session.lastEndpoint.key } -> {
+                        Timber.d("Reconnect decision for ${device.uuid}: last endpoint no longer available")
+                        true
+                    }
                     // If currently connected host is no longer available, reconnect
                     session.status is ConnectionStatus.Connected &&
                             session.status.transport != ConnectionTransport.USB &&
                             session.lastHost != null &&
-                            !device.hosts.any { it.key == session.lastHost.key } -> true
+                            !device.hosts.any { it.key == session.lastHost.key } -> {
+                        Timber.d("Reconnect decision for ${device.uuid}: last host no longer available")
+                        true
+                    }
 
-                    else -> false
+                    else -> {
+                        Timber.d("Reconnect decision for ${device.uuid}: connection unchanged")
+                        false
+                    }
                 }
             }
         }

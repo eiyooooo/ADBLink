@@ -82,7 +82,7 @@ class AdbUsbDeviceReceiver private constructor() : BroadcastReceiver() {
                                 device.usbDevice.productId == usbDevice.productId
                             ) {
                                 Timber.d("USB device detached: ${device.deviceName}, UUID: ${device.uuid}")
-                                DeviceRepository.updateUsbDevice(device.uuid, null)
+                                DeviceRepository.updateUsbDevice(device, null)
                                 break
                             }
                         }
@@ -122,7 +122,7 @@ class AdbUsbDeviceReceiver private constructor() : BroadcastReceiver() {
                     DeviceRepository.addDevice(device)
                     Timber.d("Added device to repository via USB: $serialNumber")
                 } else {
-                    DeviceRepository.updateUsbDevice(existingDevice.uuid, usbDevice)
+                    DeviceRepository.updateUsbDevice(existingDevice, usbDevice, needReconnect = true)
                     Timber.d("Updated device in repository via USB: $serialNumber")
                 }
             }
