@@ -7,6 +7,7 @@ enum class ConnectionState {
     CONNECTED_USB,
     CONNECTED_TLS,
     CONNECTED_TCP,
+    CONNECTION_LOST,
     CONNECTION_FAILED_TIMEOUT,
     CONNECTION_FAILED_UNAUTHORIZED,
     CONNECTION_FAILED_PAIRING_REQUIRED,
@@ -21,6 +22,7 @@ val connectedStateList = listOf(
 )
 
 val failedStateList = listOf(
+    ConnectionState.CONNECTION_LOST,
     ConnectionState.CONNECTION_FAILED_TIMEOUT,
     ConnectionState.CONNECTION_FAILED_UNAUTHORIZED,
     ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED,

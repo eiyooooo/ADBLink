@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import timber.log.Timber;
 
@@ -76,6 +77,18 @@ public class AdbConnection implements Closeable {
      */
     @Nullable
     private volatile Exception mConnectionException;
+
+    /**
+     * The connection listener.
+     */
+    @Nullable
+    private volatile AdbConnectionListener mAdbConnectionListener;
+
+    /**
+     * Specifies whether the closed event has been notified.
+     */
+    @NonNull
+    private final AtomicBoolean mClosedNotified = new AtomicBoolean(false);
 
     /**
      * Specifies whether the connection is closing.
@@ -294,12 +307,21 @@ public class AdbConnection implements Closeable {
             }
 
             // This thread takes care of cleaning up pending streams
+            boolean wasClosing;
             synchronized (AdbConnection.this) {
                 cleanupStreams();
                 AdbConnection.this.notifyAll();
+                wasClosing = mClosing;
                 mClosing = false;
                 mConnectionEstablished = false;
                 mConnectAttempted = false;
+            }
+
+            if (!wasClosing && mClosedNotified.compareAndSet(false, true)) {
+                AdbConnectionListener listener = mAdbConnectionListener;
+                if (listener != null) {
+                    listener.onAbnormalClosed(mConnectionException);
+                }
             }
         });
     }
@@ -470,6 +492,15 @@ public class AdbConnection implements Closeable {
             return !((TcpChannel) mChannel).isTls();
         }
         return false;
+    }
+
+    /**
+     * Sets the connection listener.
+     *
+     * @param listener The listener to set. Can be {@code null}.
+     */
+    void setConnectionListener(@Nullable AdbConnectionListener listener) {
+        mAdbConnectionListener = listener;
     }
 
     /**

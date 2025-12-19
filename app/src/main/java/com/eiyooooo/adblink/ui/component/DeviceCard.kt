@@ -74,6 +74,7 @@ fun DeviceCard(
         )
 
         ConnectionState.CONNECTION_FAILED_TIMEOUT,
+        ConnectionState.CONNECTION_LOST,
         ConnectionState.CONNECTION_FAILED_UNAUTHORIZED,
         ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED,
         ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE,
@@ -100,6 +101,7 @@ fun DeviceCard(
         }
 
         ConnectionState.DISCONNECTED -> stringResource(R.string.connection_disconnected)
+        ConnectionState.CONNECTION_LOST -> stringResource(R.string.connection_lost)
         ConnectionState.CONNECTION_FAILED_TIMEOUT -> stringResource(R.string.connection_failed_timeout)
         ConnectionState.CONNECTION_FAILED_UNAUTHORIZED -> stringResource(R.string.connection_failed_unauthorized)
         ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED -> stringResource(R.string.connection_failed_pairing_required)
@@ -138,6 +140,7 @@ fun DeviceCard(
                             ConnectionState.CONNECTED_TCP -> MaterialTheme.colorScheme.primary
 
                             ConnectionState.CONNECTION_FAILED_TIMEOUT,
+                            ConnectionState.CONNECTION_LOST,
                             ConnectionState.CONNECTION_FAILED_UNAUTHORIZED,
                             ConnectionState.CONNECTION_FAILED_PAIRING_REQUIRED,
                             ConnectionState.CONNECTION_FAILED_HOST_UNREACHABLE,

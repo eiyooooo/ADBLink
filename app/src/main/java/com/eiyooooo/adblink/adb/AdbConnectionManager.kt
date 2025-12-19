@@ -149,6 +149,7 @@ internal class AdbConnectionManager(
                         updateEndpointLastUsedTime(device, successfulEndpoint, successfulHost)
                     }
 
+                    connection.bindConnectionListener(device.uuid)
                     updateSession(device.uuid) { session ->
                         session.copy(
                             status = ConnectionStatus.Connected(transport),
@@ -301,6 +302,27 @@ internal class AdbConnectionManager(
             }
         }
     }
+
+    private fun AdbConnection.bindConnectionListener(deviceUuid: String) =
+        setConnectionListener { e ->
+            updateSession(deviceUuid) { session ->
+                if (session.connection != this) {
+                    session
+                } else {
+                    session.copy(
+                        status = ConnectionStatus.Failed(ConnectionState.CONNECTION_LOST),
+                        activeTarget = null,
+                        connection = null,
+                        job = null,
+                        lastEndpoint = null,
+                        lastHost = null,
+                        lastError = ConnectionState.CONNECTION_LOST
+                    )
+                }
+            }
+            safeCloseConnection(this)
+            Timber.w(e, "Connection lost for device $deviceUuid")
+        }
 
     private fun safeCloseConnection(connection: AdbConnection?) {
         connection ?: return
