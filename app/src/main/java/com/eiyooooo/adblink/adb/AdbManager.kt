@@ -121,4 +121,6 @@ object AdbManager {
     fun reconnectDevice(device: Device) = adbConnectionManager.reconnectDevice(device)
 
     fun disconnectDevice(deviceUuid: String) = adbConnectionManager.disconnectDevice(deviceUuid)
+
+    fun removeDiscoveredConnectDevice(deviceSerial: String) = discoveredDeviceManager.removeDiscoveredConnectDevice(deviceSerial)
 }

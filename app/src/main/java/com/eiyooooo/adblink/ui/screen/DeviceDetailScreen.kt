@@ -197,6 +197,7 @@ private fun DeviceDetailScreenContent(
                                         }
                                     )
                                     DeviceRepository.addDevice(device)
+                                    AdbManager.removeDiscoveredConnectDevice(discoveredDevice.deviceSerial)
                                     SnackbarManager.show(resources.getString(R.string.device_info_updated))
                                     navController.popBackStack()
                                 } catch (e: Exception) {

@@ -1,10 +1,14 @@
 package com.eiyooooo.adblink.adb.discover
 
 import android.net.nsd.NsdServiceInfo
+import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.data.normalizeEndpointList
+import com.eiyooooo.adblink.data.normalizeHostList
 import com.eiyooooo.adblink.entity.ConnectionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -40,12 +44,35 @@ class DiscoveredDeviceManager(private val scope: CoroutineScope) {
                 }
             }
 
+            val existingDevices = DeviceRepository.devices.first()
+            val updatedSerials = mutableSetOf<String>()
+            discoveredDevices.forEach { (serial, newDevice) ->
+                val existing = existingDevices.find { it.deviceSerial == serial } ?: return@forEach
+                val manualHosts = existing.hosts.filter { it.manuallyAdded }
+                val manualEndpoints = existing.connectionEndpoints.filter { it.manuallyAdded }
+                val updatedHosts = normalizeHostList(manualHosts, newDevice.hosts)
+                val updatedEndpoints = normalizeEndpointList(manualEndpoints, newDevice.connectionEndpoints)
+                if (updatedHosts != existing.hosts || updatedEndpoints != existing.connectionEndpoints) {
+                    DeviceRepository.updateDevice(existing) {
+                        it.copy(
+                            hosts = updatedHosts,
+                            connectionEndpoints = updatedEndpoints
+                        )
+                    }
+                }
+                updatedSerials.add(serial)
+            }
+
             _discoveredConnectDevices.update { currentList ->
                 val deviceMap = currentList.associateBy { it.deviceSerial }.toMutableMap()
 
                 val iterator = deviceMap.entries.iterator()
                 while (iterator.hasNext()) {
                     val entry = iterator.next()
+                    if (entry.key in updatedSerials) {
+                        iterator.remove()
+                        continue
+                    }
                     val filteredEndpoints = entry.value.connectionEndpoints.filterNot { endpoint ->
                         endpoint.type == connectionTypeToReplace
                     }
@@ -61,6 +88,9 @@ class DiscoveredDeviceManager(private val scope: CoroutineScope) {
                 }
 
                 discoveredDevices.forEach { (serial, newDevice) ->
+                    if (serial in updatedSerials) {
+                        return@forEach
+                    }
                     val existing = deviceMap[serial]
                     deviceMap[serial] = existing?.mergeWith(newDevice) ?: newDevice
                 }
@@ -81,6 +111,12 @@ class DiscoveredDeviceManager(private val scope: CoroutineScope) {
             _discoveredPairingDevices.update {
                 discoveredDevices
             }
+        }
+    }
+
+    fun removeDiscoveredConnectDevice(deviceSerial: String) {
+        _discoveredConnectDevices.update { currentList ->
+            currentList.filterNot { it.deviceSerial == deviceSerial }
         }
     }
 }
