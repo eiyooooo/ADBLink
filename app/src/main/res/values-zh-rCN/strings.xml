@@ -81,6 +81,7 @@
     <string name="testing_latency">延迟测试中…</string>
     <string name="add_device_to_list">添加到设备列表</string>
     <string name="unreachable">无法连接</string>
+    <string name="connection_type_usb">USB 连接</string>
     <string name="connection_type_tcp">TCP 连接</string>
     <string name="connection_type_tls_connect">TLS 连接</string>
     <string name="connection_type_tls_pairing">TLS 配对</string>

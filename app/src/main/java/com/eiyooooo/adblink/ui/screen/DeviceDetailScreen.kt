@@ -337,7 +337,7 @@ private fun DeviceDetailContent(
         is DeviceDetailType.Edit -> {
             val types = connectionEndpointList.map { it.type }.toSet()
             if (types.isEmpty()) {
-                stringResource(R.string.connection_type_tcp)
+                stringResource(R.string.connection_type_usb)
             } else {
                 types.map { type ->
                     when (type) {

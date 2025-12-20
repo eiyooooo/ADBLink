@@ -81,6 +81,7 @@
     <string name="testing_latency">Testing…</string>
     <string name="add_device_to_list">Add to Device List</string>
     <string name="unreachable">Unreachable</string>
+    <string name="connection_type_usb">USB Connection</string>
     <string name="connection_type_tcp">TCP Connection</string>
     <string name="connection_type_tls_connect">TLS Connection</string>
     <string name="connection_type_tls_pairing">TLS Pairing</string>
