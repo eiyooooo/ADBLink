@@ -103,6 +103,9 @@
     <string name="connected_via_tls_no_host_port">Connected via ADB TLS</string>
     <string name="connected_via_tcp">Connected via TCP (%1$s)</string>
     <string name="connected_via_tcp_no_host_port">Connected via TCP</string>
+    <string name="connection_attempt_usb">Attempting USB connection</string>
+    <string name="connection_attempt_tls">Attempting ADB TLS (%1$s)</string>
+    <string name="connection_attempt_tcp">Attempting TCP (%1$s)</string>
     <string name="connection_disconnected">Disconnected</string>
     <string name="connection_lost">Connection lost</string>
     <string name="connection_connecting">Connecting…</string>

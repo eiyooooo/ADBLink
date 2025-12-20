@@ -47,9 +47,15 @@ sealed class ConnectionResult {
     data class Failure(val reason: ConnectionState) : ConnectionResult()
 }
 
+sealed class ConnectionAttempt {
+    data object Usb : ConnectionAttempt()
+    data class Network(val target: ConnectionTarget) : ConnectionAttempt()
+}
+
 data class ConnectionSession(
     val status: ConnectionStatus = ConnectionStatus.Disconnected,
     val activeTarget: ConnectionTarget? = null,
+    val attempt: ConnectionAttempt? = null,
     val connection: AdbConnection? = null,
     val job: Job? = null,
     val lastEndpoint: ConnectionEndpoint? = null,

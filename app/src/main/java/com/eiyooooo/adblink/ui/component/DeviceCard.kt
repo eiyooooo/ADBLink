@@ -37,9 +37,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
+import com.eiyooooo.adblink.data.ConnectionAttempt
 import com.eiyooooo.adblink.data.ConnectionSession
 import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.entity.ConnectionState
+import com.eiyooooo.adblink.entity.ConnectionType
 
 @Composable
 fun DeviceCard(
@@ -51,6 +53,25 @@ fun DeviceCard(
     val connectionSession = connectionSessions[device.uuid] ?: ConnectionSession()
     val connectionState = connectionSession.status.toConnectionState()
     val lastNetworkTarget = connectionSession.activeTarget
+    val attemptText = if (
+        connectionState == ConnectionState.CONNECTING ||
+        connectionState == ConnectionState.CONNECTING_AWAITING_AUTHORIZATION
+    ) {
+        when (val attempt = connectionSession.attempt) {
+            is ConnectionAttempt.Usb -> stringResource(R.string.connection_attempt_usb)
+            is ConnectionAttempt.Network -> {
+                val hostPort = "${attempt.target.host}:${attempt.target.port}"
+                when (attempt.target.type) {
+                    ConnectionType.TLS -> stringResource(R.string.connection_attempt_tls, hostPort)
+                    ConnectionType.TCP -> stringResource(R.string.connection_attempt_tcp, hostPort)
+                }
+            }
+
+            null -> null
+        }
+    } else {
+        null
+    }
 
     val (icon, backgroundColor) = when (connectionState) {
         ConnectionState.DISCONNECTED -> Pair(
@@ -206,6 +227,13 @@ fun DeviceCard(
 
                     Text(
                         text = stringResource(R.string.device_serial, device.deviceSerial),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                if (attemptText != null) {
+                    Text(
+                        text = attemptText,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

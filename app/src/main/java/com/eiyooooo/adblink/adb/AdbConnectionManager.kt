@@ -1,5 +1,6 @@
 package com.eiyooooo.adblink.adb
 
+import com.eiyooooo.adblink.data.ConnectionAttempt
 import com.eiyooooo.adblink.data.ConnectionEndpoint
 import com.eiyooooo.adblink.data.ConnectionHost
 import com.eiyooooo.adblink.data.ConnectionResult
@@ -47,6 +48,7 @@ internal class AdbConnectionManager(
                 ConnectionSession(
                     status = ConnectionStatus.Connecting,
                     activeTarget = null,
+                    attempt = null,
                     connection = null,
                     job = currentJob,
                     lastEndpoint = null,
@@ -65,6 +67,9 @@ internal class AdbConnectionManager(
                 var successfulHost: ConnectionHost? = null
 
                 if (device.usbDevice != null) {
+                    updateSession(device.uuid) { session ->
+                        session.copy(attempt = ConnectionAttempt.Usb)
+                    }
                     val result = tryCreateAndConnect(
                         "USB",
                         device.uuid,
@@ -117,7 +122,20 @@ internal class AdbConnectionManager(
                                 "${endpoint.type.name} ${host.host}:${endpoint.port}",
                                 device.uuid,
                                 { markAwaitingAuthorization(device.uuid) },
-                                { AdbConnection.create(host.host, endpoint.port, adbKeyPair) }
+                                {
+                                    updateSession(device.uuid) { session ->
+                                        session.copy(
+                                            attempt = ConnectionAttempt.Network(
+                                                ConnectionTarget(
+                                                    host = host.host,
+                                                    port = endpoint.port,
+                                                    type = endpoint.type
+                                                )
+                                            )
+                                        )
+                                    }
+                                    AdbConnection.create(host.host, endpoint.port, adbKeyPair)
+                                }
                             )
                             when (result) {
                                 is ConnectionResult.Success -> {
@@ -163,6 +181,7 @@ internal class AdbConnectionManager(
                         session.copy(
                             status = ConnectionStatus.Connected(transport),
                             activeTarget = target,
+                            attempt = null,
                             connection = connection,
                             job = null,
                             lastEndpoint = successfulEndpoint,
@@ -185,6 +204,7 @@ internal class AdbConnectionManager(
                         session.copy(
                             status = ConnectionStatus.Failed(lastFailureReason),
                             activeTarget = null,
+                            attempt = null,
                             connection = null,
                             job = null,
                             lastEndpoint = null,
@@ -200,6 +220,7 @@ internal class AdbConnectionManager(
                     session.copy(
                         status = ConnectionStatus.Failed(ConnectionState.CONNECTION_FAILED_UNKNOWN),
                         activeTarget = null,
+                        attempt = null,
                         connection = null,
                         job = null,
                         lastEndpoint = null,
@@ -357,6 +378,7 @@ internal class AdbConnectionManager(
                     session.copy(
                         status = ConnectionStatus.Failed(ConnectionState.CONNECTION_LOST),
                         activeTarget = null,
+                        attempt = null,
                         connection = null,
                         job = null,
                         lastEndpoint = null,
