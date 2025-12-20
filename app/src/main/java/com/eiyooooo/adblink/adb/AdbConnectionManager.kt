@@ -57,6 +57,7 @@ internal class AdbConnectionManager(
 
             try {
                 var connection: AdbConnection? = null
+                var shouldAbortAttempts = false
                 var connected = false
                 var transport: ConnectionTransport? = null
                 var lastFailureReason: ConnectionState = ConnectionState.CONNECTION_FAILED_UNKNOWN
@@ -79,11 +80,15 @@ internal class AdbConnectionManager(
 
                         is ConnectionResult.Failure -> {
                             lastFailureReason = result.reason
+                            if (result.reason == ConnectionState.CONNECTION_FAILED_UNAUTHORIZED) {
+                                Timber.d("Aborting further connection attempts for device ${device.uuid} due to unauthorized failure")
+                                shouldAbortAttempts = true
+                            }
                         }
                     }
                 }
 
-                if (!connected) {
+                if (!connected && !shouldAbortAttempts) {
                     val sortedEndpoints = device.connectionEndpoints.sortedWith(
                         compareByDescending<ConnectionEndpoint> { it.lastUsedTime }.thenBy {
                             when (it.type) {
@@ -103,10 +108,10 @@ internal class AdbConnectionManager(
                     }
 
                     for (endpoint in sortedEndpoints) {
-                        if (connected) break
+                        if (connected || shouldAbortAttempts) break
 
                         for (host in availableHosts) {
-                            if (connected) break
+                            if (connected || shouldAbortAttempts) break
 
                             val result = tryCreateAndConnect(
                                 "${endpoint.type.name} ${host.host}:${endpoint.port}",
@@ -128,6 +133,10 @@ internal class AdbConnectionManager(
 
                                 is ConnectionResult.Failure -> {
                                     lastFailureReason = result.reason
+                                    if (result.reason == ConnectionState.CONNECTION_FAILED_UNAUTHORIZED) {
+                                        Timber.d("Aborting further connection attempts for device ${device.uuid} due to unauthorized failure")
+                                        shouldAbortAttempts = true
+                                    }
                                 }
                             }
                         }
