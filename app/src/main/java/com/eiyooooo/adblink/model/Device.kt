@@ -1,7 +1,9 @@
-package com.eiyooooo.adblink.data
+package com.eiyooooo.adblink.model
 
 import android.hardware.usb.UsbDevice
-import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.config.Preferences
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionHost
 import com.eiyooooo.adblink.util.generateUuid
 
 data class Device(

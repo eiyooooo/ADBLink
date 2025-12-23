@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.entity.SystemServices
+import com.eiyooooo.adblink.config.SystemServices
 import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.getIp
 

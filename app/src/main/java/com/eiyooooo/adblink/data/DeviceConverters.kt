@@ -1,6 +1,8 @@
 package com.eiyooooo.adblink.data
 
 import androidx.room.TypeConverter
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionHost
 import kotlinx.serialization.json.Json
 
 class DeviceConverters {

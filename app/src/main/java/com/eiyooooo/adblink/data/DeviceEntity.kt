@@ -3,6 +3,9 @@ package com.eiyooooo.adblink.data
 import android.hardware.usb.UsbDevice
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.eiyooooo.adblink.model.Device
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionHost
 
 @Entity(tableName = "devices")
 data class DeviceEntity(

@@ -10,10 +10,10 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Build
 import com.eiyooooo.adblink.adb.isPotentialAdbDevice
-import com.eiyooooo.adblink.data.Device
+import com.eiyooooo.adblink.config.Preferences
+import com.eiyooooo.adblink.config.SystemServices
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.entity.Preferences
-import com.eiyooooo.adblink.entity.SystemServices
+import com.eiyooooo.adblink.model.Device
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

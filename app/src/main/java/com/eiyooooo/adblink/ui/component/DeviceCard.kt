@@ -37,11 +37,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
-import com.eiyooooo.adblink.data.ConnectionAttempt
-import com.eiyooooo.adblink.data.ConnectionSession
-import com.eiyooooo.adblink.data.Device
-import com.eiyooooo.adblink.entity.ConnectionState
-import com.eiyooooo.adblink.entity.ConnectionType
+import com.eiyooooo.adblink.model.Device
+import com.eiyooooo.adblink.model.connection.ConnectionAttempt
+import com.eiyooooo.adblink.model.connection.ConnectionSession
+import com.eiyooooo.adblink.model.connection.ConnectionState
+import com.eiyooooo.adblink.model.connection.ConnectionType
 
 @Composable
 fun DeviceCard(

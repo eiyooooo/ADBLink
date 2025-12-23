@@ -1,4 +1,4 @@
-package com.eiyooooo.adblink.entity
+package com.eiyooooo.adblink.config
 
 import android.content.ClipboardManager
 import android.hardware.usb.UsbManager

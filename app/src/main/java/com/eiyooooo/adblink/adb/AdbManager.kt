@@ -7,9 +7,9 @@ import com.eiyooooo.adblink.adb.discover.AdbDiscoverServiceType
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
 import com.eiyooooo.adblink.adb.discover.DiscoveredDeviceManager
 import com.eiyooooo.adblink.application
-import com.eiyooooo.adblink.data.ConnectionSession
-import com.eiyooooo.adblink.data.Device
-import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.config.Preferences
+import com.eiyooooo.adblink.model.Device
+import com.eiyooooo.adblink.model.connection.ConnectionSession
 import com.eiyooooo.adblink.util.QrCodeGenerator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

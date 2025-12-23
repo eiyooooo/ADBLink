@@ -35,11 +35,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.data.ConnectionEndpoint
-import com.eiyooooo.adblink.data.ConnectionHost
-import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.entity.ConnectionType
+import com.eiyooooo.adblink.model.Device
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionHost
+import com.eiyooooo.adblink.model.connection.ConnectionType
 import com.eiyooooo.adblink.ui.component.BubbleMessage
 import com.eiyooooo.adblink.ui.snackbar.SnackbarManager
 import com.eiyooooo.adblink.util.isValidHostAddress

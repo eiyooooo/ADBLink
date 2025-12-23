@@ -3,7 +3,7 @@ package com.eiyooooo.adblink.util
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
-import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.config.Preferences
 import java.util.Locale
 
 object LanguageUtil {

@@ -1,6 +1,6 @@
 package com.eiyooooo.adblink.util
 
-import com.eiyooooo.adblink.data.ConnectionHost
+import com.eiyooooo.adblink.model.connection.ConnectionHost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber

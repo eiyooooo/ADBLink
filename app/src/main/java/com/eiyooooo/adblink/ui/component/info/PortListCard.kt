@@ -39,8 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.data.ConnectionEndpoint
-import com.eiyooooo.adblink.entity.ConnectionType
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionType
 
 @Composable
 fun PortListCard(

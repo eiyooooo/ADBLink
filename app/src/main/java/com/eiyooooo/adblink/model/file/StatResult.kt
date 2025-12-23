@@ -1,4 +1,4 @@
-package com.eiyooooo.adblink.entity
+package com.eiyooooo.adblink.model.file
 
 data class StatResult(
     val error: Int = 0,

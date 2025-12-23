@@ -5,7 +5,7 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
 import androidx.annotation.RequiresExtension
-import com.eiyooooo.adblink.entity.SystemServices
+import com.eiyooooo.adblink.config.SystemServices
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber

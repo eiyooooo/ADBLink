@@ -1,8 +1,6 @@
-package com.eiyooooo.adblink.data
+package com.eiyooooo.adblink.model.connection
 
 import com.eiyooooo.adblink.adb.AdbConnection
-import com.eiyooooo.adblink.entity.ConnectionState
-import com.eiyooooo.adblink.entity.ConnectionType
 import kotlinx.coroutines.Job
 
 enum class ConnectionTransport {

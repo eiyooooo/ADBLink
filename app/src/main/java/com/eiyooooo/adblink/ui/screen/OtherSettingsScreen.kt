@@ -29,7 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.config.Preferences
 import com.eiyooooo.adblink.ui.component.SettingClickableItem
 import com.eiyooooo.adblink.ui.component.SettingDropdownItem
 import com.eiyooooo.adblink.ui.component.SettingSwitchItem

@@ -48,9 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eiyooooo.adblink.R
-import com.eiyooooo.adblink.data.ConnectionEndpoint
-import com.eiyooooo.adblink.data.ConnectionHost
-import com.eiyooooo.adblink.entity.ConnectionType
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionHost
+import com.eiyooooo.adblink.model.connection.ConnectionType
 import com.eiyooooo.adblink.util.IpLatency
 import com.eiyooooo.adblink.util.isValidHostAddress
 import com.eiyooooo.adblink.util.testLatency

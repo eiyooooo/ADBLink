@@ -2,9 +2,9 @@ package com.eiyooooo.adblink.adb.discover
 
 import android.net.nsd.NsdServiceInfo
 import com.eiyooooo.adblink.data.DeviceRepository
-import com.eiyooooo.adblink.data.normalizeEndpointList
-import com.eiyooooo.adblink.data.normalizeHostList
-import com.eiyooooo.adblink.entity.ConnectionType
+import com.eiyooooo.adblink.model.connection.ConnectionType
+import com.eiyooooo.adblink.model.connection.normalizeEndpointList
+import com.eiyooooo.adblink.model.connection.normalizeHostList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

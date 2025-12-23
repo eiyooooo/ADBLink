@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 
-import com.eiyooooo.adblink.entity.Preferences;
+import com.eiyooooo.adblink.config.Preferences;
 
 import java.io.Closeable;
 import java.io.IOException;

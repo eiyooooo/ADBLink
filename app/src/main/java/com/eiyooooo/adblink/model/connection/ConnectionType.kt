@@ -1,4 +1,4 @@
-package com.eiyooooo.adblink.entity
+package com.eiyooooo.adblink.model.connection
 
 import kotlinx.serialization.Serializable
 

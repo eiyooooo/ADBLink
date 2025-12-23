@@ -40,8 +40,8 @@ import androidx.navigation.NavHostController
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.adb.discover.DiscoveredDevice
-import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.model.Device
 import com.eiyooooo.adblink.ui.component.DeviceCard
 import com.eiyooooo.adblink.ui.component.DiscoveredDevicesBannerCard
 import com.eiyooooo.adblink.ui.dialog.AdbTlsDialog

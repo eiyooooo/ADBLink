@@ -39,7 +39,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.eiyooooo.adblink.R
 import com.eiyooooo.adblink.adb.AdbManager
-import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.config.Preferences
 import com.eiyooooo.adblink.ui.component.ExpandableFab
 import com.eiyooooo.adblink.ui.component.FabItem
 import com.eiyooooo.adblink.ui.dialog.AdbTcpDialog

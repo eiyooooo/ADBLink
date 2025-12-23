@@ -3,11 +3,11 @@ package com.eiyooooo.adblink.adb.discover
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
-import com.eiyooooo.adblink.data.ConnectionEndpoint
-import com.eiyooooo.adblink.data.ConnectionHost
-import com.eiyooooo.adblink.data.normalizeEndpointList
-import com.eiyooooo.adblink.data.normalizeHostList
-import com.eiyooooo.adblink.entity.ConnectionType
+import com.eiyooooo.adblink.model.connection.ConnectionEndpoint
+import com.eiyooooo.adblink.model.connection.ConnectionHost
+import com.eiyooooo.adblink.model.connection.ConnectionType
+import com.eiyooooo.adblink.model.connection.normalizeEndpointList
+import com.eiyooooo.adblink.model.connection.normalizeHostList
 import timber.log.Timber
 
 data class DiscoveredDevice(

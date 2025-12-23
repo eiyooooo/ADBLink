@@ -3,7 +3,7 @@ package com.eiyooooo.adblink
 import android.app.Application
 import android.content.Context
 import com.eiyooooo.adblink.adb.AdbManager
-import com.eiyooooo.adblink.entity.Preferences
+import com.eiyooooo.adblink.config.Preferences
 import com.eiyooooo.adblink.util.FLog
 import com.eiyooooo.adblink.util.LanguageUtil
 import timber.log.Timber

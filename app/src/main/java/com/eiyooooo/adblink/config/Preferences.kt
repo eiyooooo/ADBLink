@@ -1,4 +1,4 @@
-package com.eiyooooo.adblink.entity
+package com.eiyooooo.adblink.config
 
 import android.content.Context
 import android.content.SharedPreferences

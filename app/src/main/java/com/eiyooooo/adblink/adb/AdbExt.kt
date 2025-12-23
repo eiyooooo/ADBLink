@@ -18,9 +18,9 @@ import com.eiyooooo.adblink.adb.LocalServices.ID_SEND_V1
 import com.eiyooooo.adblink.adb.LocalServices.ID_STAT_V2
 import com.eiyooooo.adblink.adb.LocalServices.SYNC_DATA_MAX
 import com.eiyooooo.adblink.adb.LocalServices.generateSyncHeader
-import com.eiyooooo.adblink.entity.FileInfo
-import com.eiyooooo.adblink.entity.StatResult
-import com.eiyooooo.adblink.entity.TransferProgress
+import com.eiyooooo.adblink.model.file.FileInfo
+import com.eiyooooo.adblink.model.file.StatResult
+import com.eiyooooo.adblink.model.file.TransferProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber

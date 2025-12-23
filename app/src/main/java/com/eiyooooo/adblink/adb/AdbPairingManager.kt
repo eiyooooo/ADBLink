@@ -5,9 +5,9 @@ import android.graphics.Color
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.ext.SdkExtensions
-import com.eiyooooo.adblink.data.ConnectionHost
-import com.eiyooooo.adblink.data.Device
 import com.eiyooooo.adblink.data.DeviceRepository
+import com.eiyooooo.adblink.model.Device
+import com.eiyooooo.adblink.model.connection.ConnectionHost
 import com.eiyooooo.adblink.util.QrCodeGenerator
 import com.eiyooooo.adblink.util.generateRandomString
 import com.eiyooooo.adblink.util.isReachableLocallySuspend

@@ -3,6 +3,7 @@ package com.eiyooooo.adblink.data
 import android.hardware.usb.UsbDevice
 import com.eiyooooo.adblink.adb.AdbManager
 import com.eiyooooo.adblink.application
+import com.eiyooooo.adblink.model.Device
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
